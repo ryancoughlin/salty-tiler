@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+follow instuctions only, do not hallucsincate and make stuff up. ask q's and obsess over learing the library you're working with TiTiler
+
+Preview all api work with [index.html](mdc:mapbox-viewer/index.html) – this uses the API for testing and previewing. uses mapbox gl js v3

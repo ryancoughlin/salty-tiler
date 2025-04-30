@@ -1,0 +1,26 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# TiTiler Configuration and Usage
+
+TiTiler is a modern dynamic tile server built on top of FastAPI and Rasterio/GDAL.
+
+## API Structure
+
+The TiTiler instance is running on port 8001 with these key endpoints:
+- `/cog/{z}/{x}/{y}` - Tile endpoint for COG files
+- `/cog/tilejson.json` - TileJSON metadata for COG files
+- `/cog/info` - Information about the COG file
+
+## Testing with MapBox Viewer
+
+The project includes a MapBox GL JS viewer in the [mapbox-viewer/index.html](mdc:mapbox-viewer/index.html) directory. This viewer is configured to connect to the TiTiler endpoints.
+
+### Visualization Parameters
+
+When using the viewer, you can specify these parameters:
+- `url`: The COG file path (e.g., `data/ABI-GOES19-GLOBAL-2025-04-26T170000Z_SST_cog.tif`)
+- `colormap`: The colormap to use (e.g., `viridis`, `plasma`, `inferno`)
+- `rescale`: The data range to visualize (e.g., `270,310` for SST data)
