@@ -16,7 +16,7 @@ from pathlib import Path
 # Initialize the FastAPI app
 app = FastAPI(
     title="ABI-GOES19 Sea Surface Temperature TiTiler",
-    description="A TiTiler instance for serving ABI-GOES19 sea surface temperature data",
+    description="A TiTiler instance for serving ABI-GOES19 sea surface temperature data with a fixed color palette",
     version="0.1.0",
 )
 
@@ -45,7 +45,8 @@ def root():
         "message": "ABI-GOES19 Sea Surface Temperature TiTiler API is running",
         "documentation": "/docs",
         "cog_endpoint": "/cog",
-        "preview_link": "/preview?url=data/ABI-GOES19-GLOBAL-2025-04-26T170000Z_SST_cog.tif"
+        "preview_link": "/preview?url=data/ABI-GOES19-GLOBAL-2025-04-26T170000Z_SST_cog.tif",
+        "note": "SST data uses a fixed color palette. Colormap selection is not available."
     }
 
 @app.get("/preview")

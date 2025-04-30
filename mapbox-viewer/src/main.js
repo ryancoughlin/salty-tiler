@@ -16,10 +16,10 @@ const config = {
     zoom: 4,
   },
 
-  // Initial rendering parameters
-  initialParams: {
-    colormap_name: "viridis",
-    rescale: "0,3778", // 32°F to 100°F
+  // Temperature range in Fahrenheit
+  temperature: {
+    min: 42.8,
+    max: 89.3,
   },
 };
 
@@ -40,245 +40,171 @@ const map = new mapboxgl.Map({
   zoom: config.initialView.zoom,
 });
 
-// Function to build the TiTiler URL for COG tiles
-function buildTilerUrl(z, x, y, params = {}) {
-  const allParams = {
-    url: dataUrl,
-    ...config.initialParams,
-    ...params,
-  };
+// --- Custom SST Colormap ---
+const SST_COLORS = [
+  "#081d58",
+  "#0d2167",
+  "#122b76",
+  "#173584",
+  "#1c3f93",
+  "#2149a1",
+  "#2653b0",
+  "#2b5dbe",
+  "#3067cd",
+  "#3571db",
+  "#3a7bea",
+  "#4185f8",
+  "#41b6c4",
+  "#46c0cd",
+  "#4bcad6",
+  "#50d4df",
+  "#55dde8",
+  "#5ae7f1",
+  "#7fcdbb",
+  "#8ed7c4",
+  "#9de1cd",
+  "#acebd6",
+  "#bbf5df",
+  "#c7e9b4",
+  "#d6edb8",
+  "#e5f1bc",
+  "#f4f5c0",
+  "#fef396",
+  "#fec44f",
+  "#fdb347",
+  "#fca23f",
+  "#fb9137",
+  "#fa802f",
+  "#f96f27",
+  "#f85e1f",
+  "#f74d17",
+];
 
-  const searchParams = new URLSearchParams();
-  Object.entries(allParams).forEach(([key, value]) => {
-    if (key === "colormap") {
-      searchParams.append("colormap_name", value);
-    } else {
-      searchParams.append(key, value);
-    }
+function buildColormapParam() {
+  const colormap = {};
+  SST_COLORS.forEach((color, i) => {
+    colormap[Math.round((i * 255) / (SST_COLORS.length - 1))] = color;
   });
-
-  return `${
-    config.tilerBaseUrl
-  }/cog/tiles/WebMercatorQuad/${z}/${x}/${y}?${searchParams.toString()}`;
+  return JSON.stringify(colormap);
 }
 
-// Function to display error messages
+// --- Fahrenheit/Raw Conversion ---
+function rawToFahrenheit(raw) {
+  return (parseFloat(raw) * 0.01 * 9) / 5 + 32;
+}
+function fahrenheitToRaw(f) {
+  return Math.round(((parseFloat(f) - 32) * 5) / 9 / 0.01);
+}
+
+// --- UI Setup ---
+function setupControls() {
+  // Min value slider
+  const minValueSlider = document.getElementById("min-value");
+  const minValueDisplay = document.getElementById("min-value-display");
+  minValueSlider.value = config.temperature.min;
+  minValueDisplay.textContent = config.temperature.min;
+
+  minValueSlider.addEventListener("input", (e) => {
+    const value = parseFloat(e.target.value);
+    // Ensure min doesn't exceed max
+    if (value >= config.temperature.max) {
+      e.target.value = config.temperature.max - 1;
+      config.temperature.min = config.temperature.max - 1;
+    } else {
+      config.temperature.min = value;
+    }
+    minValueDisplay.textContent = config.temperature.min;
+    updateRasterLayer();
+  });
+
+  // Max value slider
+  const maxValueSlider = document.getElementById("max-value");
+  const maxValueDisplay = document.getElementById("max-value-display");
+  maxValueSlider.value = config.temperature.max;
+  maxValueDisplay.textContent = config.temperature.max;
+
+  maxValueSlider.addEventListener("input", (e) => {
+    const value = parseFloat(e.target.value);
+    // Ensure max doesn't go below min
+    if (value <= config.temperature.min) {
+      e.target.value = config.temperature.min + 1;
+      config.temperature.max = config.temperature.min + 1;
+    } else {
+      config.temperature.max = value;
+    }
+    maxValueDisplay.textContent = config.temperature.max;
+    updateRasterLayer();
+  });
+
+  // Update button - now optional since we update in real-time, but keep for explicit refresh
+  const updateButton = document.getElementById("update-layer");
+  updateButton.addEventListener("click", updateRasterLayer);
+}
+
+// --- Raster Layer Update ---
+function updateRasterLayer() {
+  // Remove existing layer and source if they exist
+  if (map.getLayer("sst-layer")) map.removeLayer("sst-layer");
+  if (map.getSource("sst-source")) map.removeSource("sst-source");
+
+  // Build tile URL with custom colormap and rescale
+  const minF = config.temperature.min;
+  const maxF = config.temperature.max;
+  const rawMin = fahrenheitToRaw(minF);
+  const rawMax = fahrenheitToRaw(maxF);
+  const colormapParam = buildColormapParam();
+  const searchParams = new URLSearchParams({
+    url: dataUrl,
+    rescale: `${rawMin},${rawMax}`,
+    colormap: colormapParam,
+  });
+  const tileUrl = `${
+    config.tilerBaseUrl
+  }/cog/tiles/WebMercatorQuad/{z}/{x}/{y}?${searchParams.toString()}`;
+
+  // Debug logs
+  console.log(`updateRasterLayer: minF=${minF}, maxF=${maxF}`);
+  console.log(`updateRasterLayer: rawMin=${rawMin}, rawMax=${rawMax}`);
+  console.log(`updateRasterLayer: tileUrl=${tileUrl}`);
+
+  map.addSource("sst-source", {
+    type: "raster",
+    tiles: [tileUrl],
+    tileSize: 512,
+    attribution: "Data: NOAA/NESDIS GOES19 ABI Sea Surface Temperature",
+  });
+  map.addLayer({
+    id: "sst-layer",
+    type: "raster",
+    source: "sst-source",
+    paint: {
+      "raster-opacity": 1,
+      "raster-resampling": "linear",
+    },
+  });
+}
+
+// --- Error Display ---
 function showError(message) {
   const errorEl = document.getElementById("error-message");
-  errorEl.textContent = message;
-  errorEl.style.display = "block";
-
-  // Auto-hide after 5 seconds
-  setTimeout(() => {
-    errorEl.style.display = "none";
-  }, 5000);
-}
-
-// Function to update the raster layer
-function updateRasterLayer(params = {}) {
-  // Remove existing layer and source if they exist
-  if (map.getLayer("sst-layer")) {
-    map.removeLayer("sst-layer");
-  }
-  if (map.getSource("sst-source")) {
-    map.removeSource("sst-source");
-  }
-
-  // Build the tile URL using COG endpoint
-  const tileUrl = buildTilerUrl("{z}", "{x}", "{y}", params);
-
-  // Update the debug URL display
-  document.getElementById("titiler-url").textContent = config.tilerBaseUrl;
-
-  // Add new source and layer
-  try {
-    map.addSource("sst-source", {
-      type: "raster",
-      tiles: [tileUrl],
-      tileSize: 256,
-      attribution: "Data: NOAA/NESDIS GOES19 ABI Sea Surface Temperature",
-    });
-
-    map.addLayer({
-      id: "sst-layer",
-      type: "raster",
-      source: "sst-source",
-      paint: {
-        "raster-opacity": 0.8,
-        "raster-resampling": "linear",
-      },
-    });
-
-    // Update legend
-    updateLegend(
-      params.colormap_name || config.initialParams.colormap_name,
-      params.rescale
-        ? params.rescale.split(",")[0]
-        : config.initialParams.rescale.split(",")[0],
-      params.rescale
-        ? params.rescale.split(",")[1]
-        : config.initialParams.rescale.split(",")[1]
-    );
-  } catch (error) {
-    showError(`Error loading tiles: ${error.message}`);
-    console.error("Error loading tiles:", error);
+  if (errorEl) {
+    errorEl.textContent = message;
+    errorEl.style.display = "block";
+    setTimeout(() => {
+      errorEl.style.display = "none";
+    }, 5000);
+  } else {
+    console.error(message);
   }
 }
 
-// Generate a gradient for the legend
-function updateLegend(colormap, vmin, vmax) {
-  const legendEl = document.getElementById("gradient");
-  const numSteps = 10;
-  let gradientHtml = "";
-
-  // Update the legend title for Sea Surface Temperature
-  document.querySelector("#legend h3").textContent =
-    "Sea Surface Temperature (°F)";
-
-  // Create legend items
-  for (let i = 0; i < numSteps; i++) {
-    const step = i / (numSteps - 1);
-    const value =
-      parseFloat(vmin) + step * (parseFloat(vmax) - parseFloat(vmin));
-
-    // Approximate the colors based on the colormap
-    let color;
-
-    switch (colormap) {
-      case "viridis":
-        color = getViridisColor(step);
-        break;
-      case "plasma":
-        color = getPlasmaColor(step);
-        break;
-      case "turbo":
-        color = getTurboColor(step);
-        break;
-      case "jet":
-        color = getJetColor(step);
-        break;
-      case "rainbow":
-        color = getRainbowColor(step);
-        break;
-      default:
-        color = getViridisColor(step);
-    }
-
-    gradientHtml += `
-      <div style="display: flex; align-items: center; margin-bottom: 5px;">
-        <span class="legend-key" style="background-color: ${color};"></span>
-        <span>${value.toFixed(2)}</span>
-      </div>
-    `;
-  }
-
-  legendEl.innerHTML = gradientHtml;
-}
-
-// Color approximation functions for legend (simplified)
-function getViridisColor(t) {
-  // Viridis approx: dark blue -> purple -> green -> yellow
-  return `rgb(${Math.floor(t * 255)}, ${Math.floor(t * 150 + 50)}, ${Math.floor(
-    255 * (1 - t)
-  )})`;
-}
-
-function getPlasmaColor(t) {
-  // Plasma approx: dark purple -> pink -> orange -> yellow
-  return `rgb(${Math.floor(t * 255)}, ${Math.floor(t * 100)}, ${Math.floor(
-    255 * (1 - t * 0.8)
-  )})`;
-}
-
-function getTurboColor(t) {
-  // Turbo approx: blue -> cyan -> green -> yellow -> red
-  const r = Math.sin(t * Math.PI) * 255;
-  const g = Math.sin((t + 0.33) * Math.PI) * 255;
-  const b = Math.sin((t + 0.66) * Math.PI) * 255;
-  return `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
-}
-
-function getJetColor(t) {
-  // Jet approx: blue -> cyan -> yellow -> red
-  const r = t < 0.5 ? 0 : (t - 0.5) * 2 * 255;
-  const g = t < 0.5 ? t * 2 * 255 : (1 - t) * 2 * 255;
-  const b = t < 0.5 ? 255 * (1 - t * 2) : 0;
-  return `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
-}
-
-function getRainbowColor(t) {
-  // Rainbow approx: red -> yellow -> green -> cyan -> blue -> magenta
-  const r = Math.sin(t * Math.PI) * 255;
-  const g = Math.sin((t + 0.33) * Math.PI) * 255;
-  const b = Math.sin((t + 0.66) * Math.PI) * 255;
-  return `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
-}
-
-// Function to fetch COG metadata
-async function fetchCogMetadata() {
-  try {
-    const response = await fetch(
-      `${config.tilerBaseUrl}/cog/info?url=${encodeURIComponent(dataUrl)}`
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        `Metadata request failed with status: ${response.status}`
-      );
-    }
-
-    const metadata = await response.json();
-    console.log("COG metadata:", metadata);
-
-    // Update the controls based on the metadata
-    document.getElementById("colormap").value =
-      config.initialParams.colormap_name;
-
-    // Disable NetCDF-specific controls
-    document.getElementById("time-idx").disabled = true;
-    document.getElementById("level-idx").disabled = true;
-
-    // Get min/max values from metadata if available
-    if (metadata.statistics && metadata.statistics[1]) {
-      const stats = metadata.statistics[1];
-      if (stats.min !== undefined && stats.max !== undefined) {
-        const minVal = parseFloat(stats.min) || 32;
-        const maxVal = parseFloat(stats.max) || 100;
-
-        document.getElementById("min-value").value = minVal;
-        document.getElementById("max-value").value = maxVal;
-
-        // Update rescale parameter
-        config.initialParams.rescale = `${minVal},${maxVal}`;
-      }
-    }
-  } catch (error) {
-    console.error("Error fetching COG metadata:", error);
-    showError(`Error fetching COG metadata: ${error.message}`);
-  }
-}
-
-// Initialize map and add controls
+// --- Map Initialization ---
 map.on("load", () => {
-  // Fetch COG metadata
-  fetchCogMetadata();
-
-  // Add raster layer
+  setupControls();
   updateRasterLayer();
-
-  // Set up event listeners for controls
-  document.getElementById("update-layer").addEventListener("click", () => {
-    const colormap = document.getElementById("colormap").value;
-    const minValue = document.getElementById("min-value").value;
-    const maxValue = document.getElementById("max-value").value;
-
-    updateRasterLayer({
-      colormap_name: colormap,
-      rescale: `${minValue},${maxValue}`,
-      color_formula: "gamma rgb 1.3,sigmoidal rgb 22 0.1",
-    });
-  });
-
-  // Add navigation controls
   map.addControl(new mapboxgl.NavigationControl(), "top-left");
 });
+
+// --- UI HTML (for reference, not JS) ---
+// <input id="temp-slider" type="range" min="32" max="100" step="0.1">
+// <div id="error-message" style="display:none;"></div>

@@ -52,6 +52,20 @@
         margin-bottom: 10px;
         width: 100%;
       }
+      .slider-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+      .slider-container input[type="range"] {
+        flex-grow: 1;
+        margin-right: 10px;
+      }
+      .slider-value {
+        width: 50px;
+        text-align: right;
+        font-weight: bold;
+      }
       #error-message {
         position: absolute;
         top: 10px;
@@ -84,34 +98,31 @@
     </div>
     <div class="map-overlay" id="controls">
       <h3>Layer Controls</h3>
-      <label for="colormap">Colormap:</label>
-      <select id="colormap">
-        <option value="viridis">Viridis</option>
-        <option value="plasma">Plasma</option>
-        <option value="turbo">Turbo</option>
-        <option value="jet">Jet</option>
-        <option value="rainbow">Rainbow</option>
-      </select>
+      <label for="min-value">Min Temperature (°F):</label>
+      <div class="slider-container">
+        <input
+          type="range"
+          id="min-value"
+          min="42.8"
+          max="89.3"
+          step="0.25"
+          value="42.8"
+        />
+        <span id="min-value-display" class="slider-value">42.8</span>
+      </div>
 
-      <label for="min-value">Min Value (°F):</label>
-      <input
-        type="number"
-        id="min-value"
-        min="32"
-        max="100"
-        step="1"
-        value="32"
-      />
-
-      <label for="max-value">Max Value (°F):</label>
-      <input
-        type="number"
-        id="max-value"
-        min="32"
-        max="100"
-        step="1"
-        value="100"
-      />
+      <label for="max-value">Max Temperature (°F):</label>
+      <div class="slider-container">
+        <input
+          type="range"
+          id="max-value"
+          min="42.8"
+          max="89.3"
+          step="0.25"
+          value="89.3"
+        />
+        <span id="max-value-display" class="slider-value">89.3</span>
+      </div>
 
       <!-- NetCDF-specific controls (hidden for COG) -->
       <div style="display: none">
