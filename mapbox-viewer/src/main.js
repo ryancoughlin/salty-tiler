@@ -40,54 +40,6 @@ const map = new mapboxgl.Map({
   zoom: config.initialView.zoom,
 });
 
-// --- Custom SST Colormap ---
-const SST_COLORS = [
-  "#081d58",
-  "#0d2167",
-  "#122b76",
-  "#173584",
-  "#1c3f93",
-  "#2149a1",
-  "#2653b0",
-  "#2b5dbe",
-  "#3067cd",
-  "#3571db",
-  "#3a7bea",
-  "#4185f8",
-  "#41b6c4",
-  "#46c0cd",
-  "#4bcad6",
-  "#50d4df",
-  "#55dde8",
-  "#5ae7f1",
-  "#7fcdbb",
-  "#8ed7c4",
-  "#9de1cd",
-  "#acebd6",
-  "#bbf5df",
-  "#c7e9b4",
-  "#d6edb8",
-  "#e5f1bc",
-  "#f4f5c0",
-  "#fef396",
-  "#fec44f",
-  "#fdb347",
-  "#fca23f",
-  "#fb9137",
-  "#fa802f",
-  "#f96f27",
-  "#f85e1f",
-  "#f74d17",
-];
-
-function buildColormapParam() {
-  const colormap = {};
-  SST_COLORS.forEach((color, i) => {
-    colormap[Math.round((i * 255) / (SST_COLORS.length - 1))] = color;
-  });
-  return JSON.stringify(colormap);
-}
-
 // --- Fahrenheit/Raw Conversion ---
 function rawToFahrenheit(raw) {
   return (parseFloat(raw) * 0.01 * 9) / 5 + 32;
@@ -147,16 +99,16 @@ function updateRasterLayer() {
   if (map.getLayer("sst-layer")) map.removeLayer("sst-layer");
   if (map.getSource("sst-source")) map.removeSource("sst-source");
 
-  // Build tile URL with custom colormap and rescale
+  // Build tile URL with fixed colormap and rescale
   const minF = config.temperature.min;
   const maxF = config.temperature.max;
   const rawMin = fahrenheitToRaw(minF);
   const rawMax = fahrenheitToRaw(maxF);
-  const colormapParam = buildColormapParam();
   const searchParams = new URLSearchParams({
     url: dataUrl,
     rescale: `${rawMin},${rawMax}`,
-    colormap: colormapParam,
+    colormap_name: "tempo_r",
+    resampling: "bilinear",
   });
   const tileUrl = `${
     config.tilerBaseUrl

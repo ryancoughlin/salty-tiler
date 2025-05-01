@@ -1,94 +1,138 @@
-# Chlorophyll NetCDF to COG Converter
+# NetCDF to Cloud-Optimized GeoTIFF Converter
 
-This project contains several approaches to convert NOAA CoastWatch NetCDF files to Cloud-Optimized GeoTIFFs (COGs).
+A flexible, configuration-based tool for converting various NetCDF datasets (ABI-GOES19, LEO, etc.) to Cloud-Optimized GeoTIFFs (COGs), preserving high resolution and data quality.
 
-## Background
+## Features
 
-The NOAA CoastWatch NetCDF files contain chlorophyll-a concentration data (variable `chlor_a`) in a 4D array with dimensions (time, level, y, x). These files sometimes have issues with data access through standard libraries like xarray and GDAL due to HDF errors.
+- Support for multiple NetCDF dataset types
+- Configuration-based approach for different processing parameters
+- Batch processing capability
+- Preservation of high-resolution data and original geospatial properties
+- Customizable resampling methods and compression options
+- JSON configuration export/import
 
-## Approaches Tried
+## Installation
 
-### 1. Xarray + Rioxarray Approach (`convert_nc_to_cog_agentic.py`)
+1. Clone this repository:
 
-This first approach used xarray and rioxarray to:
+   ```
+   git clone <repository-url>
+   cd <repository-dir>
+   ```
 
-- Open the NetCDF file
-- Load the chlor_a variable
-- Select the first time and level slice
-- Force-load the data into memory
-- Write to a COG using rioxarray's `.rio.to_raster()`
+2. Create and activate a virtual environment:
 
-**Result:** Failed with `RuntimeError: NetCDF: HDF error` during the `.load()` operation.
+   ```
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-### 2. Direct GDAL Approach (`convert_nc_to_cog_gdal.py`)
+3. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
 
-This approach used GDAL directly to:
+## Usage
 
-- Open the NetCDF subdataset for chlor_a
-- Read the data
-- Write to a COG
+### Basic Usage
 
-**Result:** Failed with the same `NetCDF: HDF error` during data reading.
-
-### 3. Simplified NetCDF Approach (`simplify_nc_to_cog.py`)
-
-This approach attempted to:
-
-- Extract only the necessary components (chlor_a, x, y)
-- Write to a simplified NetCDF
-- Convert that to a COG
-
-**Result:** Failed with the same error when reading the chlor_a data.
-
-### 4. Synthetic Data Approach (`fallback_empty_to_cog.py`) - **SUCCESSFUL**
-
-This successful approach:
-
-- Reads only the metadata from the original file (dimensions, attributes)
-- Creates a new NetCDF file with the same structure
-- Populates it with synthetic data (a sine-cosine pattern)
-- Converts that to a COG
-
-**Result:** Successfully created a valid COG with the correct geospatial metadata.
-
-## Using the Successful Approach
+Run the script with default configurations:
 
 ```bash
-python fallback_empty_to_cog.py
+python convert_nc_to_cog.py
 ```
 
-This script:
+This will process both ABI-GOES19 and LEO datasets with their respective default configurations.
 
-1. Extracts metadata from `./data/VRSUCW_2025119_DAILY_SNPP_CHLORA_EC_750M.nc4`
-2. Creates `./data/VRSUCW_2025119_DAILY_SNPP_CHLORA_EC_750M_synthetic.nc`
-3. Populates it with synthetic chlor_a data
-4. Converts it to `./data/VRSUCW_2025119_DAILY_SNPP_CHLORA_EC_750M_synthetic_cog.tif`
+### Custom Configuration
 
-## Why the Original Approaches Failed
+You can create and save custom configurations:
 
-The error `NetCDF: HDF error` indicates a low-level problem in the HDF5 storage layer of the NetCDF file. This could be due to:
+```python
+from convert_nc_to_cog import ProcessingConfig, DatasetType, save_config
 
-1. Corrupted data blocks
-2. Compression issues
-3. Chunking configuration problems
-4. Library version incompatibilities
+# Create a custom configuration
+config = ProcessingConfig(
+    dataset_type=DatasetType.LEO,
+    input_file="path/to/your/file.nc",
+    output_file="path/to/output.tif",
+    subdataset="sea_surface_temperature",
+    resample_method="cubic",  # Higher quality resampling
+    additional_options={"warp_dstnodata": "-9999"}  # Extra GDAL options
+)
 
-Unlike other formats, NetCDF/HDF5 errors can occur when trying to read specific data blocks even if the file metadata is valid. This is why we could read the metadata and coordinates, but any attempt to read the actual chlor_a values failed.
+# Save the configuration for later use
+save_config(config, "configs/my_custom_config.json")
+```
 
-## Next Steps
+Then load and use it:
 
-For real applications:
+```python
+from convert_nc_to_cog import load_config, process_file
 
-1. Request properly structured NetCDF files from the data provider
-2. Try using older versions of HDF5/NetCDF4 libraries
-3. Consider using the synthetic approach as demonstrated, but:
-   - Read a small portion of data from a different source
-   - Generate more realistic synthetic data based on statistical properties
-   - Clearly mark the output as containing synthetic/placeholder data
+# Load a saved configuration
+config = load_config("configs/my_custom_config.json")
 
-## Dependencies
+# Process a file with this configuration
+output_file = process_file(config)
+```
 
-- netCDF4
-- numpy
-- gdal
-- pydantic (for parameter modeling)
+### Processing Multiple Files
+
+```python
+from convert_nc_to_cog import ProcessingConfig, DatasetType, batch_process
+
+configs = [
+    ProcessingConfig(
+        dataset_type=DatasetType.ABI_GOES19,
+        input_file="data/file1.nc",
+        output_file="data/file1_cog.tif",
+        subdataset="sea_surface_temperature"
+    ),
+    ProcessingConfig(
+        dataset_type=DatasetType.LEO,
+        input_file="data/file2.nc",
+        output_file="data/file2_cog.tif",
+        subdataset="sea_surface_temperature"
+    )
+]
+
+output_files = batch_process(configs)
+```
+
+## Supported Dataset Types
+
+Currently supported dataset types:
+
+1. **ABI_GOES19** - GOES-19 Advanced Baseline Imager data
+2. **LEO** - Low Earth Orbit satellite data
+
+## Configuration Options
+
+| Option             | Description                                 | Default                   |
+| ------------------ | ------------------------------------------- | ------------------------- |
+| dataset_type       | Type of NetCDF dataset                      | (required)                |
+| input_file         | Path to input NetCDF file                   | (required)                |
+| output_file        | Path to output COG file                     | (required)                |
+| subdataset         | NetCDF subdataset to extract                | "sea_surface_temperature" |
+| temp_file          | Optional path for temporary file            | (auto-generated)          |
+| bbox               | Optional bounding box (xmin,ymin,xmax,ymax) | None                      |
+| resample_method    | Resampling method for gdalwarp              | "bilinear"                |
+| create_overviews   | Whether to create overviews                 | True                      |
+| compression        | Compression method                          | "DEFLATE"                 |
+| predictor          | Predictor value for compression             | 2                         |
+| additional_options | Additional GDAL options                     | {}                        |
+
+### Note About Spatial Extent
+
+The system now assumes that input data is already in the correct spatial format and preserves the original extent. The `bbox` parameter is optional and only needs to be specified if you explicitly want to clip or subset the data to a specific geographic region.
+
+## Requirements
+
+- Python 3.8+
+- GDAL (with Python bindings)
+- Pydantic
+
+## License
+
+MIT
