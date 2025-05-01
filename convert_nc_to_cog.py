@@ -34,7 +34,13 @@ class ProcessingConfig(BaseModel):
     compression: str = Field("DEFLATE", description="Compression method for the output COG")
     predictor: int = Field(2, description="Predictor value for compression")
     preserve_subset: bool = Field(True, description="Preserve the original subset area from NetCDF")
+    force_epsg4326: bool = Field(True, description="Force WGS84 (EPSG:4326) projection")
+    convert_to_byte: bool = Field(False, description="Convert output to Byte (8-bit) for better preview compatibility")
+    data_type: Optional[str] = Field(None, description="Override output data type (Byte, Int16, Float32)")
     additional_options: Dict[str, str] = Field(default_factory=dict, description="Additional GDAL options")
+    overview_levels: Optional[List[int]] = Field(None, description="Specific overview levels to generate (e.g. [2, 4, 8, 16])")
+    max_zoom: Optional[int] = Field(None, description="Maximum zoom level for TiTiler display")
+    target_resolution: Optional[float] = Field(None, description="Target resolution in degrees for the output (e.g., 0.001)")
     
     def get_subdataset_path(self) -> str:
         """Get the full path to the specified NetCDF subdataset"""
@@ -47,36 +53,7 @@ class ProcessingConfig(BaseModel):
         return self.temp_file
 
 
-def get_netcdf_metadata(file_path: str) -> Dict:
-    """
-    Get metadata from a NetCDF file using gdalinfo
-    
-    Args:
-        file_path: Path to the NetCDF file
-        
-    Returns:
-        Dictionary containing metadata
-    """
-    cmd = ["gdalinfo", "-json", file_path]
-    result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-    
-    try:
-        return json.loads(result.stdout)
-    except json.JSONDecodeError:
-        # Fall back to parsing the text output
-        metadata = {}
-        lines = result.stdout.split('\n')
-        
-        # Extract basic metadata
-        for line in lines:
-            if ':' in line and '=' in line:
-                key, value = line.split('=', 1)
-                metadata[key.strip()] = value.strip()
-                
-        return metadata
-
-
-def get_dataset_bounds(file_path: str, dataset_type: DatasetType) -> Tuple[float, float, float, float]:
+def get_dataset_bounds(file_path: str, dataset_type: DatasetType) -> Optional[Tuple[float, float, float, float]]:
     """
     Get the actual bounds of the dataset from the NetCDF file
     
@@ -85,67 +62,136 @@ def get_dataset_bounds(file_path: str, dataset_type: DatasetType) -> Tuple[float
         dataset_type: Type of dataset (ABI_GOES19, LEO, etc.)
         
     Returns:
-        Tuple containing (xmin, ymin, xmax, ymax)
+        Tuple containing (xmin, ymin, xmax, ymax) or None if bounds cannot be determined
     """
+    # Use ncdump to get bounds from global attributes
     try:
-        # Get bounds from file metadata
         cmd = ["ncdump", "-h", file_path]
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        output = result.stdout
         
-        # Parse ncdump output for global metadata
+        # Parse for bounds attributes
         bounds = {}
-        for line in result.stdout.split('\n'):
-            line = line.strip()
-            if ':westernmost_longitude' in line:
-                bounds['xmin'] = float(line.split('=')[1].strip(' ;f'))
-            elif ':easternmost_longitude' in line:
-                bounds['xmax'] = float(line.split('=')[1].strip(' ;f'))
-            elif ':southernmost_latitude' in line:
-                bounds['ymin'] = float(line.split('=')[1].strip(' ;f'))
-            elif ':northernmost_latitude' in line:
-                bounds['ymax'] = float(line.split('=')[1].strip(' ;f'))
-                
-        if len(bounds) == 4:
-            return (bounds['xmin'], bounds['ymin'], bounds['xmax'], bounds['ymax'])
+        for attr in ["westernmost_longitude", "easternmost_longitude", 
+                     "southernmost_latitude", "northernmost_latitude"]:
+            for line in output.split('\n'):
+                line = line.strip()
+                if f":{attr}" in line and '=' in line:
+                    value_str = line.split('=')[1].strip()
+                    # Remove trailing semicolon, f suffix, etc.
+                    value_str = value_str.rstrip(';').rstrip('f').strip()
+                    try:
+                        bounds[attr] = float(value_str)
+                        break
+                    except ValueError:
+                        pass
+        
+        # Check if we have all the bounds
+        required_bounds = ["westernmost_longitude", "easternmost_longitude", 
+                           "southernmost_latitude", "northernmost_latitude"]
+        if all(key in bounds for key in required_bounds):
+            return (
+                bounds["westernmost_longitude"],
+                bounds["southernmost_latitude"],
+                bounds["easternmost_longitude"],
+                bounds["northernmost_latitude"]
+            )
     except Exception as e:
-        print(f"Warning: Could not extract bounds from NetCDF metadata: {str(e)}")
+        print(f"Warning: Error extracting bounds using ncdump: {str(e)}")
     
-    # Fallback to GDAL to get the bounds
-    subdataset_path = f"NETCDF:\"{file_path}\":sea_surface_temperature"
-    cmd = ["gdalinfo", subdataset_path]
-    result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+    # Fallback to using gdalinfo on the subdataset
+    try:
+        subdataset_path = f"NETCDF:\"{file_path}\":{DatasetType.ABI_GOES19.value}"
+        cmd = ["gdalinfo", subdataset_path]
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        output = result.stdout
+        
+        # Extract corner coordinates
+        corners = {}
+        in_corners_section = False
+        for line in output.split('\n'):
+            if "Corner Coordinates:" in line:
+                in_corners_section = True
+                continue
+            
+            if in_corners_section:
+                if "Upper Left" in line:
+                    parts = line.split('(')[1].split(')')[0].split(',')
+                    corners["xmin"] = float(parts[0].strip())
+                    corners["ymax"] = float(parts[1].strip())
+                elif "Lower Right" in line:
+                    parts = line.split('(')[1].split(')')[0].split(',')
+                    corners["xmax"] = float(parts[0].strip())
+                    corners["ymin"] = float(parts[1].strip())
+                elif not line.strip() or "Center" in line:
+                    break
+        
+        if "xmin" in corners and "ymin" in corners and "xmax" in corners and "ymax" in corners:
+            return (corners["xmin"], corners["ymin"], corners["xmax"], corners["ymax"])
+    except Exception as e:
+        print(f"Warning: Error extracting bounds using gdalinfo: {str(e)}")
     
-    # Parse output for corner coordinates
-    corners = {}
-    corner_section = False
-    for line in result.stdout.split('\n'):
-        if "Corner Coordinates:" in line:
-            corner_section = True
-            continue
-        if corner_section:
-            if "Upper Left" in line:
-                parts = line.replace('(', ' ').replace(')', ' ').split()
-                corners['xmin'] = float(parts[1])
-                corners['ymax'] = float(parts[2])
-            elif "Lower Right" in line:
-                parts = line.replace('(', ' ').replace(')', ' ').split()
-                corners['xmax'] = float(parts[1])
-                corners['ymin'] = float(parts[2])
-            elif "Center" in line:
-                # End of corner section
-                break
-    
-    if len(corners) == 4:
-        return (corners['xmin'], corners['ymin'], corners['xmax'], corners['ymax'])
-    
-    # Last resort - use default extents for known dataset types
+    # Use defaults for known dataset types
     if dataset_type == DatasetType.LEO:
         return (-85.0, 23.0, -77.0, 31.02)
     elif dataset_type == DatasetType.ABI_GOES19:
         return (-156.19, -81.15, 6.19, 81.15)
     
-    # Return a global extent as last fallback
-    return (-180.0, -90.0, 180.0, 90.0)
+    # Unable to determine bounds
+    return None
+
+
+def get_dataset_info(dataset_path: str) -> Dict:
+    """
+    Get information about a dataset using gdalinfo
+    
+    Args:
+        dataset_path: Path to the dataset
+        
+    Returns:
+        Dictionary with dataset information
+    """
+    info = {
+        "data_type": None,
+        "min_value": None,
+        "max_value": None,
+        "no_data": None,
+        "scale": None,
+        "offset": None
+    }
+    
+    try:
+        cmd = ["gdalinfo", "-stats", dataset_path]
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        output = result.stdout.split('\n')
+        
+        for line in output:
+            line = line.strip()
+            if "Type=" in line:
+                data_type = line.split("Type=")[1].split(",")[0]
+                info["data_type"] = data_type
+            elif "Minimum=" in line and "Maximum=" in line:
+                parts = line.split(",")
+                for part in parts:
+                    if "Minimum=" in part:
+                        min_value = float(part.split("=")[1])
+                        info["min_value"] = min_value
+                    elif "Maximum=" in part:
+                        max_value = float(part.split("=")[1])
+                        info["max_value"] = max_value
+            elif "NoData Value=" in line:
+                no_data = line.split("=")[1].strip()
+                info["no_data"] = float(no_data)
+            elif "Offset:" in line:
+                offset = float(line.split(":")[1].split(",")[0].strip())
+                info["offset"] = offset
+            elif "Scale:" in line:
+                scale = float(line.split(":")[1].strip())
+                info["scale"] = scale
+    except Exception as e:
+        print(f"Warning: Error getting dataset info: {str(e)}")
+    
+    return info
 
 
 def convert_to_cog(config: ProcessingConfig) -> str:
@@ -161,12 +207,14 @@ def convert_to_cog(config: ProcessingConfig) -> str:
     # Setup file paths
     subdataset_path = config.get_subdataset_path()
     temp_file = config.get_temp_file()
+    intermediate_file = f"{os.path.splitext(temp_file)[0]}_int.tif"
     
-    # Get dataset bounds if needed
+    # Get dataset bounds if needed and not explicitly specified
     dataset_bounds = None
     if config.preserve_subset and not config.bbox:
         dataset_bounds = get_dataset_bounds(config.input_file, config.dataset_type)
-        print(f"Detected dataset bounds: {dataset_bounds}")
+        if dataset_bounds:
+            print(f"Detected dataset bounds: {dataset_bounds}")
     
     # Build gdalwarp command
     warp_cmd = [
@@ -179,6 +227,14 @@ def convert_to_cog(config: ProcessingConfig) -> str:
         "-co", "BIGTIFF=YES",
     ]
     
+    # Add target resolution if specified
+    if config.target_resolution:
+        warp_cmd.extend(["-tr", str(config.target_resolution), str(config.target_resolution)])
+    
+    # Always set the source and target CRS to ensure proper georeferencing
+    if config.force_epsg4326:
+        warp_cmd.extend(["-t_srs", "EPSG:4326"])
+    
     # Add bounds - either explicitly specified or detected from the dataset
     if config.bbox:
         warp_cmd.extend(["-te", *config.bbox.split(",")])
@@ -186,14 +242,9 @@ def convert_to_cog(config: ProcessingConfig) -> str:
         warp_cmd.extend(["-te", str(dataset_bounds[0]), str(dataset_bounds[1]), 
                         str(dataset_bounds[2]), str(dataset_bounds[3])])
     
-    # Preserve source SRS to ensure correct coordinate system
-    warp_cmd.extend(["-s_srs", "EPSG:4326", "-t_srs", "EPSG:4326"])
-    
-    # Add any additional options
-    for key, value in config.additional_options.items():
-        if key.startswith("warp_"):
-            option_name = key.replace("warp_", "")
-            warp_cmd.extend([f"-{option_name}", value])
+    # Specify output data type if provided
+    if config.data_type:
+        warp_cmd.extend(["-ot", config.data_type])
     
     # Add input and output files
     warp_cmd.extend([subdataset_path, temp_file])
@@ -201,6 +252,58 @@ def convert_to_cog(config: ProcessingConfig) -> str:
     # Execute gdalwarp command
     print(f"Executing: {' '.join(warp_cmd)}")
     subprocess.run(warp_cmd, check=True)
+    
+    # Get information about the warped dataset
+    dataset_info = get_dataset_info(temp_file)
+    print(f"Dataset info: {dataset_info}")
+    
+    # Special handling for LEO dataset (Float32 with negative nodata)
+    if config.dataset_type == DatasetType.LEO or config.convert_to_byte:
+        min_valid = dataset_info.get("min_value", 0)
+        max_valid = dataset_info.get("max_value", 50)
+        
+        # Ensure we have reasonable min/max values
+        if min_valid is None or max_valid is None or min_valid == max_valid:
+            # Get valid range from file metadata
+            try:
+                cmd = ["gdalinfo", temp_file]
+                result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+                for line in result.stdout.split('\n'):
+                    if "valid_min=" in line:
+                        min_valid = float(line.split("valid_min=")[1].split(",")[0].strip("-{} "))
+                    if "valid_max=" in line:
+                        max_valid = float(line.split("valid_max=")[1].strip("-{} "))
+            except Exception:
+                # Default to reasonable values for SST data
+                min_valid = 0
+                max_valid = 35
+        
+        # Convert to scaled Byte or UInt16 for better preview compatibility
+        scale_cmd = [
+            "gdal_translate",
+            "-of", "GTiff",
+            "-ot", "Byte" if 0 <= min_valid <= 255 and 0 <= max_valid <= 255 else "UInt16",
+            "-scale", str(min_valid), str(max_valid), "0", "255" if 0 <= min_valid <= 255 and 0 <= max_valid <= 255 else "65535",
+            "-a_nodata", "0",  # Use 0 as NoData for better preview compatibility
+            "-co", f"COMPRESS={config.compression}",
+            "-co", f"PREDICTOR={config.predictor}",
+            "-co", "BIGTIFF=YES",
+            temp_file,
+            intermediate_file
+        ]
+        
+        print(f"Executing scaling command: {' '.join(scale_cmd)}")
+        subprocess.run(scale_cmd, check=True)
+        
+        # Now convert the scaled file to COG
+        input_for_cog = intermediate_file
+    else:
+        # For other formats, use the warped file directly
+        input_for_cog = temp_file
+    
+    # Set default overview levels if not specified
+    if not config.overview_levels:
+        config.overview_levels = [2, 4, 8, 16, 32, 64, 128, 256, 512]
     
     # Convert to COG
     cog_cmd = [
@@ -211,9 +314,19 @@ def convert_to_cog(config: ProcessingConfig) -> str:
         "-co", "BIGTIFF=YES",
     ]
     
-    # Add overview settings
+    # Add overview settings with specific overview levels
     if config.create_overviews:
-        cog_cmd.extend(["-co", "OVERVIEWS=IGNORE_EXISTING"])
+        # Convert overview levels to string
+        overview_levels_str = ",".join(map(str, config.overview_levels))
+        cog_cmd.extend(["-co", f"OVERVIEW_RESAMPLING={config.resample_method}"])
+        cog_cmd.extend(["-co", f"OVERVIEWS={overview_levels_str}"])
+    
+    # Add blocksize for optimal tiling
+    cog_cmd.extend(["-co", "BLOCKSIZE=512"])
+    
+    # Set max zoom level if specified
+    if config.max_zoom:
+        cog_cmd.extend(["-co", f"MAX_ZOOM_LEVEL={config.max_zoom}"])
     
     # Add any additional options
     for key, value in config.additional_options.items():
@@ -221,14 +334,16 @@ def convert_to_cog(config: ProcessingConfig) -> str:
             option_name = key.replace("cog_", "")
             cog_cmd.extend([f"-co", f"{option_name}={value}"])
     
-    cog_cmd.extend([temp_file, config.output_file])
+    cog_cmd.extend([input_for_cog, config.output_file])
     
     print(f"Executing: {' '.join(cog_cmd)}")
     subprocess.run(cog_cmd, check=True)
     
-    # Clean up temporary file
+    # Clean up temporary files
     if os.path.exists(temp_file):
         os.remove(temp_file)
+    if os.path.exists(intermediate_file):
+        os.remove(intermediate_file)
         
     return config.output_file
 
@@ -248,7 +363,10 @@ def get_default_configs() -> Dict[str, ProcessingConfig]:
             subdataset="sea_surface_temperature",
             resample_method="bilinear",
             preserve_subset=True,
-            predictor=3  # Better for floating point data
+            force_epsg4326=True,
+            predictor=2,  # Default works for all data types
+            overview_levels=[2, 4, 8, 16, 32, 64, 128, 256],
+            max_zoom=12  # Provide enough zoom levels for ABI-GOES19
         ),
         DatasetType.LEO: ProcessingConfig(
             dataset_type=DatasetType.LEO,
@@ -257,7 +375,12 @@ def get_default_configs() -> Dict[str, ProcessingConfig]:
             subdataset="sea_surface_temperature",
             resample_method="bilinear",
             preserve_subset=True,
-            predictor=3  # Better for floating point data
+            force_epsg4326=True,
+            convert_to_byte=True,  # Convert Float32 to Byte format for better preview compatibility
+            predictor=2,  # Default works for all data types
+            target_resolution=0.002,  # Higher resolution (~200m at equator) for LEO data
+            overview_levels=[2, 4, 8, 16, 32, 64, 128, 256],
+            max_zoom=14  # Higher zoom level for more detailed LEO data
         )
     }
 
