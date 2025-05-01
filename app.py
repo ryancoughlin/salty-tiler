@@ -9,8 +9,14 @@ from fastapi import FastAPI
 from titiler.core.factory import TilerFactory
 from titiler.core.errors import DEFAULT_STATUS_CODES, add_exception_handlers
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Dict, Tuple, Any, List
 import uvicorn
 from pathlib import Path
+import numpy as np
+
+# Import color dependencies
+from rio_tiler.colormap import cmap as default_cmap
+from titiler.core.dependencies import create_colormap_dependency
 
 # Import required classes for custom algorithm
 from titiler.core.algorithm import BaseAlgorithm, algorithms as default_algorithms
@@ -53,6 +59,77 @@ algorithms = default_algorithms.register(
     }
 )
 
+# Define custom SST color map based on user's high contrast palette
+# Convert the list of hex colors to a continuous colormap
+def hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
+    """Convert hex color string to RGB tuple."""
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+# User's high contrast color scale
+SST_COLORS_HIGH_CONTRAST = [
+    '#081d58', '#0d2167', '#122b76', '#173584', '#1c3f93',
+    '#2149a1', 
+    '#3a7bea', '#4185f8',
+    '#34d1db', 
+    '#0effc5', 
+    '#7ff000', 
+    '#ebf600', 
+    '#fec44f', '#fdb347', '#fca23f', '#fb9137', '#fa802f',
+    '#f96f27', '#f85e1f', '#f74d17'
+]
+
+# Create a fully interpolated colormap with 256 colors
+def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> Dict[int, Tuple[int, int, int, int]]:
+    """Create a continuous colormap by interpolating between colors in the list."""
+    # Convert hex colors to RGB
+    rgb_colors = [hex_to_rgb(color) for color in color_list]
+    
+    # Number of color segments
+    num_segments = len(rgb_colors) - 1
+    
+    # Calculate how many colors to generate per segment
+    colors_per_segment = [num_colors // num_segments] * num_segments
+    # Distribute any remainder
+    remainder = num_colors % num_segments
+    for i in range(remainder):
+        colors_per_segment[i] += 1
+    
+    # Generate the continuous colormap
+    continuous_map = {}
+    color_index = 0
+    
+    for segment in range(num_segments):
+        r1, g1, b1 = rgb_colors[segment]
+        r2, g2, b2 = rgb_colors[segment + 1]
+        
+        for i in range(colors_per_segment[segment]):
+            # Calculate interpolation factor
+            t = i / (colors_per_segment[segment] - 1) if colors_per_segment[segment] > 1 else 0
+            
+            # Linear interpolation between colors
+            r = int(r1 * (1 - t) + r2 * t)
+            g = int(g1 * (1 - t) + g2 * t)
+            b = int(b1 * (1 - t) + b2 * t)
+            
+            # Add to colormap with full opacity
+            continuous_map[color_index] = (r, g, b, 255)
+            color_index += 1
+    
+    return continuous_map
+
+# Generate the continuous colormap
+sst_colormap = create_continuous_colormap(SST_COLORS_HIGH_CONTRAST, 256)
+
+# Register custom colormaps
+custom_colormaps = {
+    "sst_high_contrast": sst_colormap,
+}
+
+# Register the custom colormap with rio-tiler
+cmap = default_cmap.register(custom_colormaps)
+ColorMapParams = create_colormap_dependency(cmap)
+
 # Initialize the FastAPI app
 app = FastAPI(
     title="ABI-GOES19 Sea Surface Temperature TiTiler",
@@ -69,8 +146,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Create a TilerFactory with the custom algorithms
-cog = TilerFactory(process_dependency=algorithms.dependency)
+# Create a TilerFactory with the custom algorithms and colormap
+cog = TilerFactory(
+    process_dependency=algorithms.dependency,
+    colormap_dependency=ColorMapParams
+)
 
 # Include the router with "/cog" prefix - this creates /cog/{z}/{x}/{y} routes
 app.include_router(cog.router, prefix="/cog")

@@ -26,7 +26,7 @@ const config = {
 // Get URL parameters
 const urlParams = new URLSearchParams(window.location.search);
 const dataUrl =
-  urlParams.get("url") || "data/LEO-2025-05-01T000000Z_SST_cog.tif";
+  urlParams.get("url") || "data/LEO-2025-05-01T000000Z_highres_cog.tif";
 //   const dataUrl =
 //   urlParams.get("url") ||
 //   "data/ABI-GOES19-GLOBAL-2025-04-26T170000Z_SST_cog.tif";
@@ -141,9 +141,8 @@ function updateRasterLayer() {
   const rawMin = fahrenheitToRaw(minF);
   const rawMax = fahrenheitToRaw(maxF);
 
-  // Use a colormap suitable for temperature data
-  // Options: viridis, magma, inferno, plasma, turbo, rdbu_r
-  const colormap = "rdylbu_r"; // Red-Yellow-Blue (reversed) is good for temperature
+  // Use our custom high-contrast SST colormap
+  const colormap = "sst_high_contrast"; // Use our custom colormap defined in TiTiler
 
   const searchParams = new URLSearchParams({
     url: dataUrl,
@@ -172,7 +171,7 @@ function updateRasterLayer() {
     type: "raster",
     source: "sst-source",
     paint: {
-      "raster-opacity": 0.85, // Slightly transparent to see base map
+      "raster-opacity": 1, // Slightly transparent to see base map
       "raster-resampling": "linear",
     },
   });
@@ -198,6 +197,11 @@ function updateLegendGradient(min, max, colormap) {
   // Set gradient based on colormap
   let gradientColors;
   switch (colormap) {
+    case "sst_high_contrast":
+      // Use our custom high-contrast SST colors
+      gradientColors =
+        "linear-gradient(to right, #081d58, #0d2167, #122b76, #173584, #1c3f93, #2149a1, #3a7bea, #4185f8, #34d1db, #0effc5, #7ff000, #ebf600, #fec44f, #fdb347, #fca23f, #fb9137, #fa802f, #f96f27, #f85e1f, #f74d17)";
+      break;
     case "rdylbu_r":
       gradientColors =
         "linear-gradient(to right, #313695, #4575b4, #74add1, #abd9e9, #e0f3f8, #ffffbf, #fee090, #fdae61, #f46d43, #d73027, #a50026)";
