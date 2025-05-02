@@ -8,7 +8,7 @@ const config = {
     "pk.eyJ1Ijoic25vd2Nhc3QiLCJhIjoiY2plYXNjdTRoMDhsbDJ4bGFjOWN0YjdzeCJ9.fM2s4NZq_LUiTXJxsl2HbQ",
 
   // TiTiler server URL
-  tilerBaseUrl: "http://127.0.0.1:8000",
+  tilerBaseUrl: "http://127.0.0.1:8001",
 
   // Initial map view
   initialView: {
@@ -23,15 +23,8 @@ const config = {
   },
 };
 
-// Get URL parameters
-const urlParams = new URLSearchParams(window.location.search);
-const dataUrl =
-  urlParams.get("url") || "data/LEO-2025-05-01T000000Z_highres_cog.tif";
-//   const dataUrl =
-//   urlParams.get("url") ||
-//   "data/ABI-GOES19-GLOBAL-2025-04-26T170000Z_SST_cog.tif";
-
-//   LEO-2025-05-01T000000Z_SST_cog
+// Hardcoded COG path for TiTiler backend
+const dataUrl = "cogs/sea_surface_temperature_LEO-2025-05-01T000000Z_F_cog.tif";
 
 // Set mapbox token
 mapboxgl.accessToken = config.mapboxToken;
@@ -43,21 +36,6 @@ const map = new mapboxgl.Map({
   center: config.initialView.center,
   zoom: config.initialView.zoom,
 });
-
-// --- Fahrenheit/Raw Conversion ---
-function rawToFahrenheit(raw) {
-  // For LEO data converted to Byte (0-255), we need to remap to the actual temperature range
-  // Assuming data was scaled from ~22°C to ~27.5°C (71.6°F to 81.5°F) to 0-255
-  const celsiusMin = 21.9; // Minimum temperature in dataset in Celsius
-  const celsiusMax = 27.54; // Maximum temperature in dataset in Celsius
-
-  // First convert the 0-255 value back to celsius using the linear scale
-  const celsius =
-    celsiusMin + (parseFloat(raw) / 255) * (celsiusMax - celsiusMin);
-
-  // Then convert celsius to fahrenheit
-  return (celsius * 9) / 5 + 32;
-}
 
 function fahrenheitToRaw(f) {
   // Convert fahrenheit to celsius
@@ -146,13 +124,13 @@ function updateRasterLayer() {
 
   const searchParams = new URLSearchParams({
     url: dataUrl,
-    rescale: `${rawMin},${rawMax}`,
+    rescale: `${minF},${maxF}`,
     colormap_name: colormap,
     resampling: "bilinear",
   });
   const tileUrl = `${
     config.tilerBaseUrl
-  }/cog/tiles/WebMercatorQuad/{z}/{x}/{y}?${searchParams.toString()}`;
+  }/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?${searchParams.toString()}`;
 
   // Debug logs
   console.log(`Temperature range: ${minF.toFixed(2)}°F - ${maxF.toFixed(2)}°F`);
@@ -171,9 +149,10 @@ function updateRasterLayer() {
     type: "raster",
     source: "sst-source",
     paint: {
-      "raster-opacity": 1, // Slightly transparent to see base map
-      "raster-resampling": "linear",
+      "raster-opacity": 1,
+      "raster-resampling": "nearest",
     },
+    slot: "middle",
   });
 
   // Update the legend gradient

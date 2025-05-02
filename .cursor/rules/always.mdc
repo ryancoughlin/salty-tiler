@@ -3,6 +3,136 @@ description:
 globs: 
 alwaysApply: true
 ---
-follow instuctions only, do not hallucsincate and make stuff up. ask q's and obsess over learing the library you're working with TiTiler
+---
+description: Keep changes simple and focused
+globs: "**/*.py"
+alwaysApply: true
+---
 
-Preview all api work with [index.html](mdc:mapbox-viewer/index.html) – this uses the API for testing and previewing. uses mapbox gl js v3
+# Keep It Simple
+
+✅ DO:
+- Make the minimal change required to solve the pros on the specific issue mentioned by the user
+- Implement straightforward solutions
+- Extract data directly using the most likely variable name or path
+- Use vectorized operations with xarray
+- Let exceptions bubble up naturally for truly exceptional cases
+
+❌ DO NOT:
+- Add complex fallback mechanisms unless explicitly requested
+- Overengineer solutions with extra error handling
+- Check for multiple variable names when the likely name is known
+- Implement defensive programming patterns when not needed
+- Add features beyond what was requested
+- Add nested conditionals for handling edge cases
+- Write loops when vectorized operations can be used
+
+## Examples
+
+### Good: Simple variable access
+```python
+# Direct access of the expected variable
+temp_data = dataset['sea_surface_temperature']
+```
+
+### Bad: Defensive variable access
+```python
+# Overly defensive approach with fallbacks
+if 'sea_surface_temperature' in dataset:
+    temp_data = dataset['sea_surface_temperature']
+elif 'analysed_sst' in dataset:
+    temp_data = dataset['analysed_sst']
+else:
+    # Default fallback
+    temp_data = dataset.get('sst', xr.zeros_like(dataset.coords['longitude']))
+```
+
+### Good: Simple date extraction
+```python
+# Extract time directly from the expected attribute
+date_created = ds.attrs['date_created']
+date_time = datetime.strptime(date_created, '%Y%m%dT%H%M%SZ')
+```
+
+### Bad: Overengineered date extraction
+```python
+# Unnecessarily complex date handling
+date_created = None
+if 'date_created' in ds.attrs:
+    date_created = ds.attrs['date_created']
+elif 'creation_date' in ds.attrs:
+    date_created = ds.attrs['creation_date']
+    
+if date_created:
+    try:
+        # Try multiple formats
+        for fmt in ['%Y%m%dT%H%M%SZ', '%Y-%m-%dT%H:%M:%SZ', '%Y%m%d']:
+            try:
+                date_time = datetime.strptime(date_created, fmt)
+                break
+            except ValueError:
+                continue
+        else:
+            # Default fallback if no format matches
+            date_time = datetime.now()
+    except Exception:
+        date_time = datetime.now()
+else:
+    date_time = datetime.now()
+```
+
+### Good: Vectorized data processing
+```python
+# Simple vectorized operations
+valid_data = dataset['sea_surface_temperature'].where(
+    (dataset['sea_surface_temperature'] > 0) & 
+    (dataset['sea_surface_temperature'] < 40)
+)
+```
+
+### Bad: Loop-based processing
+```python
+# Unnecessarily complex loop-based approach
+valid_data = dataset['sea_surface_temperature'].copy()
+for i in range(valid_data.shape[0]):
+    for j in range(valid_data.shape[1]):
+        val = valid_data[i, j].item()
+        if val < 0 or val > 40 or np.isnan(val):
+            valid_data[i, j] = np.nan
+```
+
+## Maintain Scannable and Easy to Read Logs
+Avoid being too verbose only when debugging
+
+1. ProcessingManager (orchestration/processing_manager.py)
+Add logs at the start and end of each region/dataset processing.
+Use emojis for clarity:
+🏁 Start
+📦 Download
+🧩 Merge
+🧪 Process
+✅ Success
+❌ Error
+2. Pipeline (pipeline.py)
+Log each pipeline stage:
+📂 Load
+🕒 Timestamp
+🧹 Preprocess
+🏗️ Process
+🏁 Done
+3. DatasetProcessor (data/dataset_processor.py)
+Log subsetting, output export, and early returns:
+🔍 Subset
+💾 Export
+🚫 Skip (no overlap)
+✅ Done
+❌ Error
+4. DataPreprocessor (data/data_preprocessor.py)
+Log each preprocessing step:
+🗺️ Standardize coords
+📏 Reduce dims
+🧽 Clean chlorophyll
+🌡️ Type-specific
+🧬 Upsample
+✅ Preprocess done
+❌ Preprocess error

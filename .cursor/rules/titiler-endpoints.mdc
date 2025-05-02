@@ -1,0 +1,39 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# TiTiler Endpoint Usage Guide
+
+## Tile Endpoints
+- The main tile endpoint is:
+  `/cog/tiles/{tileMatrixSetId}/{z}/{x}/{y}.{format}`
+  - `tileMatrixSetId` is usually `WebMercatorQuad` for web maps.
+  - `format` is typically `png`, but can be `jpg`, `webp`, etc.
+  - Example: `/cog/tiles/WebMercatorQuad/4/4/6.png`
+
+## Required Query Parameters
+- `url`: Path to the COG file. Can be relative (e.g., `cogs/your_file.tif`) or absolute (`file:///...`), but relative is preferred if the server's CWD is correct.
+- `rescale`: Comma-separated min,max range for data values (e.g., `rescale=71.4,81.6`).
+- `colormap_name`: Use this to specify a named palette registered in the app (e.g., `colormap_name=sst_high_contrast`).
+- `resampling`: (optional) e.g., `resampling=bilinear` for smooth interpolation.
+
+## Common Mistakes
+- Do **not** use `colormap=...` for named palettes; use `colormap_name=...`.
+- `colormap=...` is only for JSON-encoded custom colormaps.
+- Omitting `tileMatrixSetId` (e.g., `WebMercatorQuad`) in the path will result in a 404.
+- File paths must be accessible to the server; relative paths are resolved from the server's working directory.
+
+## Other Useful Endpoints
+- `/cog/info?url=...` — Returns metadata about the COG (bounds, dtype, etc.).
+- `/cog/bounds?url=...` — Returns the bounding box of the COG.
+- `/cog/statistics?url=...` — Returns min/max/mean/stdev for the COG (if needed).
+
+## Example Tile URL
+```
+http://127.0.0.1:8001/cog/tiles/WebMercatorQuad/4/4/6.png?url=cogs/sea_surface_temperature_ABI-GOES19-GLOBAL-2025-04-26T170000Z_F_cog.tif&rescale=71.4,81.6&colormap_name=sst_high_contrast&resampling=bilinear
+```
+
+## Reference
+- [TiTiler COG Endpoints](mdc:https:/developmentseed.org/titiler/endpoints/cog/#tiles)
+- `/docs` and `/openapi.json` on your running TiTiler instance

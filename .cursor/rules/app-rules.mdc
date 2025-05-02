@@ -1,0 +1,147 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Ocean Tiles Pipeline Guidelines
+
+### 1. Core Libraries & Tools
+
+* **Rasterio** (and `rio_cog`) for reading NetCDF and writing/reading COGs
+* **GDAL CLI** (`gdal_translate`, `gdaladdo`, `gdal_calc.py`) for high-performance COG creation and unit conversions
+* **FastAPI** for lightweight Python API routing
+* **TiTiler** (via `TilerFactory`) for windowed tile rendering, resampling, and on‑the‑fly styling
+* **Supabase Python Client** for entry lookups in your Postgres-backed `entries` table
+* **MapboxMaps SDK v11** in SwiftUI for client-side rendering
+
+### 2. Naming & Organization Rules
+
+* **Storage Paths**
+
+  ```
+  raw_netcdf/{dataset}/{region}/{YYYY-MM-DD}.nc  
+  temp/{dataset}_{date}_F.tif  
+  cogs/{dataset}/{region}/{YYYY}/{MM}/{DD}.tif
+  ```
+* **Supabase Table**: `entries(uuid PK, dataset_id, region, layers JSON)`
+* **API Endpoints**:
+
+  * `/metadata/{dataset}/range`
+  * `/tiles/{entry_id}/{z}/{x}/{y}.png?layer=...&min=...&max=...`
+
+### 3. Data Ingestion & Region-Based Scope
+
+* **Sources**: NOAA CoastWatch AVHRR-VIIRS and NASA PODAAC GHRSST
+* **Regions**: Florida Keys, Bahamas, Gulf of Maine, Northeast Canyons, etc.—*not* global
+* **Datasets**: SST (°C/K → °F) and Chlorophyll (mg/m³)
+
+### 4. Resolution & Zoom Levels
+
+* **Native Resolution**: maintain the NetCDF grid spacing (typically 1km–5km) through reprojection at original pixel size
+* **Tile Zoom Ranges**:
+
+  * **Overview** (low detail): Zoom 3–5 (basin-scale view, \~50–200km per tile)
+  * **Regional**: Zoom 6–8 (regional view, \~10–50km per tile)
+  * **Local Detail**: Zoom 9–12 (detailed view, \~1–10km per tile)
+* Ensure COG overviews align to these factors (e.g. overview factors of 2, 4, 8, 16, 32) so TiTiler reads smallest necessary data window.
+
+### 5. Automated NC → °F Conversion & GeoTIFF Creation
+
+1. **Inspect & Read NC**
+
+   * Detect variable name and `units` attribute (`kelvin` vs. `celsius`).
+   * Extract CRS, transform, pixel size, extent, and NoData.
+2. **Convert Units**
+
+   * Apply **°F = (°C × 9/5) + 32** or **°F = ((K – 273.15) × 9/5) + 32** in-memory via Rasterio or GDAL
+3. **Write Interim GeoTIFF**
+
+   ```bash
+   gdal_calc.py -A input.nc:sst --A_band=1 \
+     --calc="(units=="kelvin"? (A-273.15)*9/5+32 : A*9/5+32)" \
+     --NoDataValue=-9999 --outfile=temp/sst_F.tif
+   ```
+4. **Generate COG**
+
+   ```bash
+   gdal_translate -of COG \
+     -co TILED=YES -co BLOCKXSIZE=512 -co BLOCKYSIZE=512 \
+     -co COMPRESS=DEFLATE -co PREDICTOR=2 \
+     temp/sst_F.tif cogs/sst/keys/2025/05/01.tif
+   ```
+5. **Build Overviews**
+
+   ```bash
+   gdaladdo -r bilinear --config COMPRESS_OVERVIEW DEFLATE \
+     cogs/.../01.tif 2 4 8 16 32
+   ```
+
+* Automate detection of units and region metadata in your Prefect/Makefile pipeline to avoid manual guessing.
+
+### 6. API & Styling Rules
+
+* **Resampling**: `bilinear` for smooth, Gouraud-style interpolation
+* **Palette**: 256-stop custom JSON colormap
+* **Scale Range**: enforce `dataset_min ≤ min < max ≤ dataset_max` from `/metadata/{dataset}/range`
+* **COG Reader Options**: set `resampling_method="bilinear"` when instantiating `TilerFactory`
+
+### 7. Supabase-Driven Tile Lookup
+
+* **Endpoint**:
+
+  ```
+  GET /tiles/{entry_id}/{z}/{x}/{y}.png
+  ```
+
+  * **Lookup**: `dataset_id`, `region`, `layers.geotiff` → obtain `{date,path}`
+  * **Render**: TiTiler.render with `scale_range`, `colormap`, `colormap_bins=256`
+  * **Cache**: `Cache-Control: public, max-age=86400`
+
+### 8. Client Integration (iOS / Mapbox v11) (HAPPENS IN A DIFFERENT PROJECT)
+
+* Fetch `/metadata/{dataset}/range` → set slider bounds
+* Build URL:
+
+  ```
+  https://api/.../tiles/{entry_id}/{z}/{x}/{y}.png?min={vmin}&max={vmax}
+  ```
+* Use `RasterSource` + `RasterLayer` in SwiftUI
+* Preload adjacent-date tiles via `new Image().src`
+
+### 9. Caching, Monitoring & Lifecycle
+
+* **CDN**: predictable, versioned URLs + long `max-age`
+* **Server**: Redis/LRU cache decorator on hot tiles
+* **Metrics**: cache hits/misses, latencies, errors
+* **Storage Lifecycle**: raw NC → Glacier after 30 days; retain COGs for 1 year; enable bucket versioning
+
+---
+
+*For newcomers: clone the repo, install dependencies (`rasterio`, `titiler`, `fastapi`, `supabase`), run conversion example, test endpoints, and hook up sample SwiftUI client.*
+
+
+Key Design Principles
+Pure functions, RORO, Pydantic models, explicit types
+No defensive logic, no fallback guessing
+Atomic, modular, and testable
+All Supabase logic is mocked in-memory, but documented for real integration
+All endpoints and logic are documented inline for future devs
+Palette is loaded once at startup and injected where needed
+COG paths are local and flat for now
+Automation: simple script to process all NC files in a folder to COGs (using your provided logic)
+
+
+salty-tiler/
+├── backend.py                # Main FastAPI app, TiTiler integration, endpoint registration
+├── my_palette.json           # Placeholder 256-color palette (hex strings)
+├── mock_supabase.py          # In-memory mock for Supabase entry lookup
+├── routes/
+│   ├── metadata.py           # /metadata/{dataset}/range endpoint
+│   └── tiles.py              # /tiles/{entry_id}/{z}/{x}/{y}.png endpoint
+├── schemas/
+│   └── entry.py              # Pydantic models for entry/layer
+├── services/
+│   └── tiler.py              # Tile rendering logic (TiTiler wrapper)
+├── types/
+│   └── enums.py              # Dataset/type enums
+└── cogs/                     # Local COGs for testing (flat folder for now)

@@ -1,0 +1,44 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Salty Tiler Project Structure & API Guide
+
+## Overview
+This project is a minimal, modular FastAPI + TiTiler backend for serving ocean dataset tiles (e.g., SST) as PNGs, using a custom 256-color palette and Supabase-driven entry lookup (mocked for local dev).
+
+## Directory Layout
+
+- [backend.py](mdc:backend.py): Main FastAPI app, loads palette, registers routers.
+- [my_palette.json](mdc:my_palette.json): 256-color palette (hex strings), loaded at startup.
+- [mock_supabase.py](mdc:mock_supabase.py): In-memory mock for Supabase entry lookup. Replace with real Supabase integration for production.
+- [schemas/entry.py](mdc:schemas/entry.py): Pydantic models for Entry and Layer, RORO, explicit types.
+- [services/tiler.py](mdc:services/tiler.py): Pure function to render a tile from a COG using TiTiler, bilinear resampling, and custom palette.
+- [routes/metadata.py](mdc:routes/metadata.py): `/metadata/{dataset}/range` endpoint, returns min/max for slider.
+- [routes/tiles.py](mdc:routes/tiles.py): `/tiles/{entry_id}/{z}/{x}/{y}.png` endpoint, looks up entry, validates, renders tile, returns PNG with cache headers.
+- [convert_all_nc_to_cog.py](mdc:convert_all_nc_to_cog.py): Batch script to convert all NC files in a folder to GeoTIFFs in Fahrenheit, no defensive logic.
+- `cogs/`: Local COGs for testing (flat folder for now).
+
+## API Endpoints
+
+- `GET /metadata/{dataset}/range`  
+  Returns min/max for a dataset (for slider bounds). See [routes/metadata.py](mdc:routes/metadata.py).
+
+- `GET /tiles/{entry_id}/{z}/{x}/{y}.png?layer=geotiff&min=...&max=...`  
+  Looks up entry in mock Supabase, validates, renders tile from COG using TiTiler. See [routes/tiles.py](mdc:routes/tiles.py).
+
+## Key Design Principles
+- Pure functions, RORO, Pydantic models, explicit types
+- No defensive logic, no fallback guessing
+- Atomic, modular, and testable
+- All Supabase logic is mocked in-memory, but documented for real integration
+- Palette is loaded once at startup and injected where needed
+- COG paths are local and flat for now
+- Automation: [convert_all_nc_to_cog.py](mdc:convert_all_nc_to_cog.py) for batch NC→COG conversion
+
+## Onboarding/Extension
+- Add new datasets or regions by updating [mock_supabase.py](mdc:mock_supabase.py) and [routes/metadata.py](mdc:routes/metadata.py).
+- Replace mock Supabase with real integration as needed.
+- Swap in your real palette in [my_palette.json](mdc:my_palette.json) at any time.
+- All code is modular, atomic, and ready for extension or production hardening.
