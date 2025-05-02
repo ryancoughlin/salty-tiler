@@ -267,6 +267,25 @@ def build_overviews(cog_path):
     ], check=True)
     print(f"✅ Overviews built: {cog_path}")
 
+def upsample_geotiff(input_path, output_path, scale_factor=4):
+    """Upsample the GeoTIFF to a finer grid using cubicspline interpolation."""
+    if os.path.exists(output_path):
+        print(f"🗑️  Removing existing upsampled file: {output_path}")
+        os.remove(output_path)
+    with rasterio.open(input_path) as src:
+        orig_res_x, orig_res_y = src.res[0], src.res[1]
+    target_res_x = orig_res_x / scale_factor
+    target_res_y = abs(orig_res_y) / scale_factor
+    print(f"🔼 Upsampling {input_path} by {scale_factor}x to resolution {target_res_x}, {target_res_y} (cubicspline)")
+    subprocess.run([
+        "gdalwarp",
+        "-overwrite",
+        "-tr", str(target_res_x), str(target_res_y),
+        "-r", "cubicspline",
+        input_path, output_path
+    ], check=True)
+    print(f"✅ Upsampled: {output_path}")
+
 def process_nc_file(nc_path: str):
     print(f"\n🏁 Processing {nc_path}")
     dataset_key = get_dataset_key(nc_path)
@@ -314,9 +333,11 @@ def process_nc_file(nc_path: str):
             date = os.path.splitext(os.path.basename(nc_path))[0].split("_")[-1]
             geotiff_path = os.path.join(DST_DIR, f"{var}_{date}_F.tif")
             cog_path = os.path.join(DST_DIR, f"{var}_{date}_F_cog.tif")
+            upsampled_path = geotiff_path.replace('.tif', '_upsampled.tif')
             print(f"💾 Writing GeoTIFF: {geotiff_path}")
             write_geotiff(data_f, profile, geotiff_path)
-            create_cog_and_overviews(geotiff_path, cog_path)
+            upsample_geotiff(geotiff_path, upsampled_path, scale_factor=4)
+            create_cog_and_overviews(upsampled_path, cog_path)
             build_overviews(cog_path)
             print(f"✅ Done: {cog_path}")
 

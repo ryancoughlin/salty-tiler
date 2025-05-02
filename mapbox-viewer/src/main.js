@@ -150,7 +150,7 @@ function updateRasterLayer() {
     source: "sst-source",
     paint: {
       "raster-opacity": 1,
-      "raster-resampling": "nearest",
+      "raster-resampling": "linear",
     },
     slot: "middle",
   });
