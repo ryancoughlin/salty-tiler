@@ -267,7 +267,7 @@ def build_overviews(cog_path):
     ], check=True)
     print(f"✅ Overviews built: {cog_path}")
 
-def upsample_geotiff(input_path, output_path, scale_factor=4):
+def upsample_geotiff(input_path, output_path, scale_factor=2):
     """Upsample the GeoTIFF to a finer grid using cubicspline interpolation."""
     if os.path.exists(output_path):
         print(f"🗑️  Removing existing upsampled file: {output_path}")
@@ -336,7 +336,7 @@ def process_nc_file(nc_path: str):
             upsampled_path = geotiff_path.replace('.tif', '_upsampled.tif')
             print(f"💾 Writing GeoTIFF: {geotiff_path}")
             write_geotiff(data_f, profile, geotiff_path)
-            upsample_geotiff(geotiff_path, upsampled_path, scale_factor=4)
+            upsample_geotiff(geotiff_path, upsampled_path, scale_factor=2)
             create_cog_and_overviews(upsampled_path, cog_path)
             build_overviews(cog_path)
             print(f"✅ Done: {cog_path}")
