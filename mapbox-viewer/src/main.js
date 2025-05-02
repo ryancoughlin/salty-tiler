@@ -23,8 +23,31 @@ const config = {
   },
 };
 
-// Hardcoded COG path for TiTiler backend
-const dataUrl = "cogs/sea_surface_temperature_LEO-2025-05-01T000000Z_F_cog.tif";
+// Dataset configs
+const DATASETS = {
+  sst: {
+    label: "Sea Surface Temperature",
+    dataUrl: "cogs/sea_surface_temperature_LEO-2025-05-01T000000Z_F_cog.tif",
+    colormap: "sst_high_contrast",
+    min: 71.4,
+    max: 81.6,
+    units: "°F",
+    legend:
+      "linear-gradient(to right, #081d58, #0d2167, #122b76, #173584, #1c3f93, #2149a1, #3a7bea, #4185f8, #34d1db, #0effc5, #7ff000, #ebf600, #fec44f, #fdb347, #fca23f, #fb9137, #fa802f, #f96f27, #f85e1f, #f74d17)",
+  },
+  chlorophyll: {
+    label: "Chlorophyll",
+    dataUrl: "cogs/chlor_a_2025-04-29T000000Z_F_cog.tif",
+    colormap: "turbo", // or your custom chlorophyll colormap name
+    min: 0.01,
+    max: 10,
+    units: "mg/m³",
+    legend:
+      "linear-gradient(to right, #30123b, #4145ab, #4675ed, #39a7ff, #1bcfd4, #24eb7a, #6df643, #aefa12, #e7f205, #fac825, #f8870f, #ca3e02, #782003)",
+  },
+};
+
+let currentDataset = "sst";
 
 // Set mapbox token
 mapboxgl.accessToken = config.mapboxToken;
@@ -56,158 +79,122 @@ function fahrenheitToRaw(f) {
 
 // --- UI Setup ---
 function setupControls() {
+  // Dataset selector
+  const datasetSelect = document.getElementById("dataset-select");
+  datasetSelect.value = currentDataset;
+  datasetSelect.addEventListener("change", (e) => {
+    currentDataset = e.target.value;
+    updateSlidersForDataset();
+    updateRasterLayer();
+  });
+
   // Min value slider
   const minValueSlider = document.getElementById("min-value");
   const minValueDisplay = document.getElementById("min-value-display");
-
-  // Update slider min/max to match our data range
-  minValueSlider.min = config.temperature.min;
-  minValueSlider.max = config.temperature.max;
-  minValueSlider.value = config.temperature.min;
-  minValueDisplay.textContent = config.temperature.min.toFixed(2);
-
   minValueSlider.addEventListener("input", (e) => {
     const value = parseFloat(e.target.value);
-    // Ensure min doesn't exceed max
-    if (value >= config.temperature.max) {
-      e.target.value = config.temperature.max - 1;
-      config.temperature.min = config.temperature.max - 1;
+    if (value >= DATASETS[currentDataset].max) {
+      e.target.value = DATASETS[currentDataset].max - 1;
+      DATASETS[currentDataset].min = DATASETS[currentDataset].max - 1;
     } else {
-      config.temperature.min = value;
+      DATASETS[currentDataset].min = value;
     }
-    minValueDisplay.textContent = config.temperature.min.toFixed(2);
+    minValueDisplay.textContent = DATASETS[currentDataset].min.toFixed(2);
     updateRasterLayer();
   });
 
   // Max value slider
   const maxValueSlider = document.getElementById("max-value");
   const maxValueDisplay = document.getElementById("max-value-display");
-
-  // Update slider min/max to match our data range
-  maxValueSlider.min = config.temperature.min;
-  maxValueSlider.max = config.temperature.max;
-  maxValueSlider.value = config.temperature.max;
-  maxValueDisplay.textContent = config.temperature.max.toFixed(2);
-
   maxValueSlider.addEventListener("input", (e) => {
     const value = parseFloat(e.target.value);
-    // Ensure max doesn't go below min
-    if (value <= config.temperature.min) {
-      e.target.value = config.temperature.min + 1;
-      config.temperature.max = config.temperature.min + 1;
+    if (value <= DATASETS[currentDataset].min) {
+      e.target.value = DATASETS[currentDataset].min + 1;
+      DATASETS[currentDataset].max = DATASETS[currentDataset].min + 1;
     } else {
-      config.temperature.max = value;
+      DATASETS[currentDataset].max = value;
     }
-    maxValueDisplay.textContent = config.temperature.max.toFixed(2);
+    maxValueDisplay.textContent = DATASETS[currentDataset].max.toFixed(2);
     updateRasterLayer();
   });
 
-  // Update button - now optional since we update in real-time, but keep for explicit refresh
+  // Update button
   const updateButton = document.getElementById("update-layer");
   updateButton.addEventListener("click", updateRasterLayer);
+
+  updateSlidersForDataset();
+}
+
+function updateSlidersForDataset() {
+  const minValueSlider = document.getElementById("min-value");
+  const minValueDisplay = document.getElementById("min-value-display");
+  const maxValueSlider = document.getElementById("max-value");
+  const maxValueDisplay = document.getElementById("max-value-display");
+  const ds = DATASETS[currentDataset];
+  minValueSlider.min = ds.min;
+  minValueSlider.max = ds.max;
+  minValueSlider.value = ds.min;
+  minValueDisplay.textContent = ds.min.toFixed(2);
+  maxValueSlider.min = ds.min;
+  maxValueSlider.max = ds.max;
+  maxValueSlider.value = ds.max;
+  maxValueDisplay.textContent = ds.max.toFixed(2);
 }
 
 // --- Raster Layer Update ---
 function updateRasterLayer() {
-  // Remove existing layer and source if they exist
-  if (map.getLayer("sst-layer")) map.removeLayer("sst-layer");
-  if (map.getSource("sst-source")) map.removeSource("sst-source");
-
-  // Build tile URL with appropriate colormap for temperatures
-  const minF = config.temperature.min;
-  const maxF = config.temperature.max;
-  const rawMin = fahrenheitToRaw(minF);
-  const rawMax = fahrenheitToRaw(maxF);
-
-  // Use our custom high-contrast SST colormap
-  const colormap = "sst_high_contrast"; // Use our custom colormap defined in TiTiler
-
+  if (map.getLayer("data-layer")) map.removeLayer("data-layer");
+  if (map.getSource("data-source")) map.removeSource("data-source");
+  const ds = DATASETS[currentDataset];
+  const min = ds.min;
+  const max = ds.max;
+  const colormap = ds.colormap;
+  const dataUrl = ds.dataUrl;
   const searchParams = new URLSearchParams({
     url: dataUrl,
-    rescale: `${minF},${maxF}`,
+    rescale: `${min},${max}`,
     colormap_name: colormap,
     resampling: "bilinear",
   });
   const tileUrl = `${
     config.tilerBaseUrl
   }/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?${searchParams.toString()}`;
-
-  // Debug logs
-  console.log(`Temperature range: ${minF.toFixed(2)}°F - ${maxF.toFixed(2)}°F`);
-  console.log(`Raw data range: ${rawMin} - ${rawMax} (0-255 scale)`);
-  console.log(`Using colormap: ${colormap}`);
-
-  // Add the new source and layer
-  map.addSource("sst-source", {
+  map.addSource("data-source", {
     type: "raster",
     tiles: [tileUrl],
     tileSize: 512,
-    attribution: "Data: Sea Surface Temperature",
+    attribution: `Data: ${ds.label}`,
   });
   map.addLayer({
-    id: "sst-layer",
+    id: "data-layer",
     type: "raster",
-    source: "sst-source",
+    source: "data-source",
     paint: {
       "raster-opacity": 1,
       "raster-resampling": "linear",
     },
     slot: "middle",
   });
-
-  // Update the legend gradient
-  updateLegendGradient(minF, maxF, colormap);
+  updateLegendGradient(min, max, colormap, ds);
 }
 
-// Add a new function to update the legend
-function updateLegendGradient(min, max, colormap) {
+function updateLegendGradient(min, max, colormap, ds) {
   const legendEl = document.getElementById("gradient");
   if (!legendEl) return;
-
-  // Clear existing gradient
   legendEl.innerHTML = "";
-
-  // Create gradient bar
   const gradientBar = document.createElement("div");
   gradientBar.style.height = "20px";
   gradientBar.style.width = "100%";
   gradientBar.style.marginBottom = "5px";
-
-  // Set gradient based on colormap
-  let gradientColors;
-  switch (colormap) {
-    case "sst_high_contrast":
-      // Use our custom high-contrast SST colors
-      gradientColors =
-        "linear-gradient(to right, #081d58, #0d2167, #122b76, #173584, #1c3f93, #2149a1, #3a7bea, #4185f8, #34d1db, #0effc5, #7ff000, #ebf600, #fec44f, #fdb347, #fca23f, #fb9137, #fa802f, #f96f27, #f85e1f, #f74d17)";
-      break;
-    case "rdylbu_r":
-      gradientColors =
-        "linear-gradient(to right, #313695, #4575b4, #74add1, #abd9e9, #e0f3f8, #ffffbf, #fee090, #fdae61, #f46d43, #d73027, #a50026)";
-      break;
-    case "turbo":
-      gradientColors =
-        "linear-gradient(to right, #30123b, #4145ab, #4675ed, #39a7ff, #1bcfd4, #24eb7a, #6df643, #aefa12, #e7f205, #fac825, #f8870f, #ca3e02, #782003)";
-      break;
-    default:
-      gradientColors =
-        "linear-gradient(to right, #313695, #4575b4, #74add1, #abd9e9, #e0f3f8, #fee090, #fdae61, #f46d43, #d73027, #a50026)";
-  }
-
-  gradientBar.style.background = gradientColors;
+  gradientBar.style.background = ds.legend;
   legendEl.appendChild(gradientBar);
-
-  // Add min/max labels
   const labels = document.createElement("div");
   labels.style.display = "flex";
   labels.style.justifyContent = "space-between";
-
   const minLabel = document.createElement("span");
-  minLabel.textContent = `${min.toFixed(1)}°F`;
-
+  minLabel.textContent = `${min.toFixed(2)} ${ds.units}`;
   const maxLabel = document.createElement("span");
-  maxLabel.textContent = `${max.toFixed(1)}°F`;
-
+  maxLabel.textContent = `${max.toFixed(2)} ${ds.units}`;
   labels.appendChild(minLabel);
   labels.appendChild(maxLabel);
   legendEl.appendChild(labels);

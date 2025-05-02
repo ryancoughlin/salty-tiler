@@ -23,13 +23,14 @@ from rasterio.transform import from_origin
 import re
 from enum import Enum
 from typing import TypedDict
+import h5py
 
 # --- CONFIG ---
 SRC_DIR = "raw_netcdf/"      # Input directory containing .nc files
 DST_DIR = "cogs/"            # Output directory for COGs
 ZOOM_OVERVIEWS = [2, 4, 8, 16, 32]  # For zooms 6–11
 ALLOWED_VARS = {"sea_surface_temperature", "analysed_sst", "chlor_a"}
-SINGLETON_DIMS = ["time", "depth", "altitude"]  # Squeeze these if present
+SINGLETON_DIMS = ["time", "depth", "altitude", "level"]  # Squeeze these if present
 PREFERRED_SUBDATASETS = ["sea_surface_temperature", "analysed_sst", "chlor_a"]
 NODATA_VALUE = -9999.0
 # --- END CONFIG ---
@@ -54,22 +55,12 @@ DATASET_CONFIG: dict[str, DatasetConfig] = {
         "crs": "EPSG:4326",
         "georef_type": GeoreferenceType.ORIGIN_PIXEL_SIZE,
     },
-    # Add more as needed
+    # New VIIRS chlorophyll dataset in Web Mercator
+    "VIIRS_CHLOR_A": {
+        "crs": "EPSG:3857",  # Web Mercator
+        "georef_type": GeoreferenceType.ORIGIN_PIXEL_SIZE,
+    },
 }
-
-# Helper to extract dataset key from filename (customize as needed)
-def get_dataset_key(nc_path: str) -> str:
-    fname = os.path.basename(nc_path)
-    if "ABI-GOES19" in fname:
-        return "ABI-GOES19"
-    if "LEO" in fname:
-        return "LEO"
-    raise RuntimeError(f"No dataset config for file: {fname}")
-
-def list_nc_variables(nc_path: str) -> dict:
-    """Return a dict of variable names and their units from a NetCDF file."""
-    with xr.open_dataset(nc_path) as ds:
-        return {v: ds[v].attrs.get("units", "") for v in ds.data_vars}
 
 def convert_to_fahrenheit(data: np.ndarray, units: str) -> np.ndarray:
     """Convert data from C or K to F. Fail if units are not recognized."""
@@ -80,6 +71,40 @@ def convert_to_fahrenheit(data: np.ndarray, units: str) -> np.ndarray:
         return data * 9/5 + 32
     else:
         raise ValueError(f"Unrecognized units: {units}")
+
+# Dataset type config for scalable, modular processing
+DATASET_TYPE_CONFIG = {
+    "sst": {
+        "variables": ["sea_surface_temperature", "analysed_sst"],
+        "allowed_units": ["kelvin", "celsius", "degree_c"],
+        "output_units": "F",
+        "convert": convert_to_fahrenheit,
+    },
+    "chlorophyll": {
+        "variables": ["chlor_a"],
+        "allowed_units": ["mg m^-3"],
+        "output_units": "mg/m^3",
+        "convert": lambda data, units: data,  # No conversion
+    },
+    # Extend here for new types, e.g. water clarity
+    # "clarity": { ... }
+}
+
+# Helper to extract dataset key from filename (customize as needed)
+def get_dataset_key(nc_path: str) -> str:
+    fname = os.path.basename(nc_path)
+    if "ABI-GOES19" in fname:
+        return "ABI-GOES19"
+    if "LEO" in fname:
+        return "LEO"
+    if "VIIIRS_CHLOR_A" in fname or "VIIRS_CHLOR_A" in fname:
+        return "VIIRS_CHLOR_A"
+    raise RuntimeError(f"No dataset config for file: {fname}")
+
+def list_nc_variables(nc_path: str) -> dict:
+    """Return a dict of variable names and their units from a NetCDF file."""
+    with xr.open_dataset(nc_path) as ds:
+        return {v: ds[v].attrs.get("units", "") for v in ds.data_vars}
 
 def get_crs(ds, var) -> str:
     """
@@ -144,15 +169,13 @@ def write_geotiff(data: np.ndarray, profile: dict, out_path: str):
         dst.write(data.astype(rasterio.float32), 1)
 
 def create_cog_and_overviews(geotiff_path: str, cog_path: str):
-    """Create COG without internal overviews."""
-    print(f"🏗️  [COG] gdal_translate {geotiff_path} -> {cog_path} (no internal overviews)")
+    """Create COG without internal overviews. Uses only COG driver options (see https://gdal.org/drivers/raster/cog.html)."""
+    print(f"\U0001F3D7️  [COG] gdal_translate {geotiff_path} -> {cog_path} (no internal overviews)")
     subprocess.run([
         "gdal_translate", "-of", "COG",
-        "-co", "TILED=YES",
-        "-co", "BLOCKXSIZE=512",
-        "-co", "BLOCKYSIZE=512",
         "-co", "COMPRESS=DEFLATE",
         "-co", "PREDICTOR=2",
+        "-co", "BLOCKSIZE=512",
         "-co", "OVERVIEWS=NONE",
         geotiff_path, cog_path
     ], check=True)
@@ -286,42 +309,107 @@ def upsample_geotiff(input_path, output_path, scale_factor=2):
     ], check=True)
     print(f"✅ Upsampled: {output_path}")
 
+def open_netcdf_h5netcdf(path_str: str) -> xr.Dataset:
+    """Try to open with xarray using h5netcdf engine."""
+    return xr.open_dataset(path_str, engine='h5netcdf')
+
+def read_chlor_a_h5netcdf_phony(path_str: str):
+    import h5netcdf
+    import numpy as np
+    with h5netcdf.File(path_str, mode="r", phony_dims="sort") as f:
+        arr = f.variables['chlor_a'][:]
+        arr = np.squeeze(arr)
+        return arr
+
+def open_coastwatch_netcdf(path: str) -> xr.Dataset:
+    """Open CoastWatch NetCDFs robustly: netcdf4 engine, no decoding, then decode_cf."""
+    ds = xr.open_dataset(
+        path,
+        engine="netcdf4",
+        decode_cf=False,
+        decode_times=False,
+        decode_coords=False,
+        mask_and_scale=False,
+        chunks=None,
+    ).load()
+    ds = xr.decode_cf(ds)
+    return ds
+
+def open_netcdf_subdataset_rasterio(nc_path: str, var: str):
+    """Open a NetCDF subdataset (e.g., chlor_a) with rasterio and return (data, profile)."""
+    subdataset_path = f'NETCDF:"{nc_path}":{var}'
+    with rasterio.open(subdataset_path) as src:
+        data = src.read(1)
+        profile = src.profile.copy()
+    return data, profile
+
+def get_dataset_type(dataset_key: str) -> str:
+    if dataset_key in ("ABI-GOES19", "LEO"):
+        return "sst"
+    if dataset_key == "VIIRS_CHLOR_A":
+        return "chlorophyll"
+    # Add more mappings as needed
+    raise RuntimeError(f"Unknown dataset type for key: {dataset_key}")
+
 def process_nc_file(nc_path: str):
     print(f"\n🏁 Processing {nc_path}")
     dataset_key = get_dataset_key(nc_path)
     if dataset_key not in DATASET_CONFIG:
         raise RuntimeError(f"No config for dataset: {dataset_key}")
     config = DATASET_CONFIG[dataset_key]
+    dataset_type = get_dataset_type(dataset_key)
+    type_cfg = DATASET_TYPE_CONFIG[dataset_type]
     variables = list_nc_variables(nc_path)
     print(f"🔍 Variables found: {variables}")
-    with xr.open_dataset(nc_path) as ds:
-        for var, units in variables.items():
-            if var not in ALLOWED_VARS:
-                print(f"🚫 Skipping variable: {var} (not in allowed list)")
+    # CoastWatch/VIIRS chlorophyll: rasterio subdataset loader
+    if dataset_key == "VIIRS_CHLOR_A":
+        for var in type_cfg["variables"]:
+            if var not in variables:
                 continue
+            units = variables[var]
+            print(f"🧪 Processing variable: {var} (units: {units}) [rasterio subdataset]")
+            data, profile = open_netcdf_subdataset_rasterio(nc_path, var)
+            data = type_cfg["convert"](data, units)
+            data = np.where(np.isnan(data), NODATA_VALUE, data)
+            profile.update(nodata=NODATA_VALUE, compress="DEFLATE")
+            date = os.path.splitext(os.path.basename(nc_path))[0].split("_")[-1]
+            geotiff_path = os.path.join(DST_DIR, f"{var}_{date}_{type_cfg['output_units'].replace('/', '')}.tif")
+            cog_path = os.path.join(DST_DIR, f"{var}_{date}_{type_cfg['output_units'].replace('/', '')}_cog.tif")
+            print(f"💾 Writing GeoTIFF: {geotiff_path}")
+            write_geotiff(data, profile, geotiff_path)
+            upsample_geotiff(geotiff_path, geotiff_path.replace('.tif', '_upsampled.tif'), scale_factor=2)
+            create_cog_and_overviews(geotiff_path.replace('.tif', '_upsampled.tif'), cog_path)
+            build_overviews(cog_path)
+            print(f"✅ Done: {cog_path}")
+        return
+    # Generic xarray loader for all other datasets
+    with xr.open_dataset(nc_path) as ds:
+        for var in type_cfg["variables"]:
+            if var not in variables:
+                continue
+            units = variables[var]
             print(f"🧪 Processing variable: {var} (units: {units})")
             debug_crs_info(ds, var)
             da = ds[var]
             print(f"🔹 Original shape for {var}: {da.shape}, dims: {da.dims}")
             da_squeezed = squeeze_singleton_dims(da, SINGLETON_DIMS)
             print(f"🔹 Squeezed shape for {var}: {da_squeezed.shape}, dims: {da_squeezed.dims}")
+            da_squeezed.load()
             data = da_squeezed.values
+            data = type_cfg["convert"](data, units)
             try:
                 transform, crs, subdataset, bounds, method, _ = get_transform_and_crs_config(nc_path, config)
                 print(f"🗺️  CRS for {var}: {crs} (method: {method})")
             except Exception as e:
                 print(f"❌ Skipping {var}: {e}")
                 continue
-            data_f = convert_to_fahrenheit(data, units)
-            # Data-driven orientation: check latitude array
             if config["georef_type"] == GeoreferenceType.ORIGIN_PIXEL_SIZE:
                 lat_dim = [d for d in da_squeezed.dims if "lat" in d or "latitude" in d]
                 lat_name = lat_dim[0] if lat_dim else da_squeezed.dims[-2]
                 if is_latitude_ascending(ds, lat_name):
                     print(f"↕️  Flipping data vertically to match north-up orientation (lat ascending in data).")
-                    data_f = np.flipud(data_f)
-            # Replace NaN with NoData value for transparency
-            data_f = np.where(np.isnan(data_f), NODATA_VALUE, data_f)
+                    data = np.flipud(data)
+            data = np.where(np.isnan(data), NODATA_VALUE, data)
             profile = {
                 "height": data.shape[-2],
                 "width": data.shape[-1],
@@ -331,11 +419,11 @@ def process_nc_file(nc_path: str):
                 "nodata": NODATA_VALUE,
             }
             date = os.path.splitext(os.path.basename(nc_path))[0].split("_")[-1]
-            geotiff_path = os.path.join(DST_DIR, f"{var}_{date}_F.tif")
-            cog_path = os.path.join(DST_DIR, f"{var}_{date}_F_cog.tif")
+            geotiff_path = os.path.join(DST_DIR, f"{var}_{date}_{type_cfg['output_units'].replace('/', '')}.tif")
+            cog_path = os.path.join(DST_DIR, f"{var}_{date}_{type_cfg['output_units'].replace('/', '')}_cog.tif")
             upsampled_path = geotiff_path.replace('.tif', '_upsampled.tif')
             print(f"💾 Writing GeoTIFF: {geotiff_path}")
-            write_geotiff(data_f, profile, geotiff_path)
+            write_geotiff(data, profile, geotiff_path)
             upsample_geotiff(geotiff_path, upsampled_path, scale_factor=2)
             create_cog_and_overviews(upsampled_path, cog_path)
             build_overviews(cog_path)

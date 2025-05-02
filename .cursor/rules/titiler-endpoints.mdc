@@ -18,6 +18,13 @@ alwaysApply: true
 - `colormap_name`: Use this to specify a named palette registered in the app (e.g., `colormap_name=sst_high_contrast`).
 - `resampling`: (optional) e.g., `resampling=bilinear` for smooth interpolation.
 
+## 404 Responses for Missing Tiles
+- **404 Not Found** responses are expected and standard for tile requests outside the available data region.
+- If a tile is requested for an area where no COG/data exists, TiTiler will return a 404.
+- Mapping clients (Mapbox, Leaflet, etc.) handle 404s gracefully and simply show no tile for those areas.
+- Only tiles within the region covered by your COG(s) will be available; all others will return 404.
+- See [routes/tiles.py](mdc:routes/tiles.py) for custom tile endpoint logic and error handling.
+
 ## Common Mistakes
 - Do **not** use `colormap=...` for named palettes; use `colormap_name=...`.
 - `colormap=...` is only for JSON-encoded custom colormaps.
