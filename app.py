@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """
-TiTiler app to serve SST data from GOES19 ABI sensor
+TiTiler app to serve SST data from GOES19 ABI sensor, chlorophyll, and other ocean datasets
 
 This application uses TiTiler to serve Cloud-Optimized GeoTIFF (COG) files
-containing sea surface temperature data from the GOES19 ABI sensor.
+containing sea surface temperature and chlorophyll data.
 """
 from fastapi import FastAPI
 from titiler.core.factory import TilerFactory
@@ -13,6 +13,11 @@ from typing import Dict, Tuple, Any, List
 import uvicorn
 from pathlib import Path
 import numpy as np
+import json
+
+# Import routes
+from routes.metadata import router as metadata_router
+from routes.tiles import router as tiles_router
 
 # Import color dependencies
 from rio_tiler.colormap import cmap as default_cmap
@@ -121,9 +126,14 @@ def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> 
 # Generate the continuous colormap
 sst_colormap = create_continuous_colormap(SST_COLORS_HIGH_CONTRAST, 256)
 
+# Load palette from JSON
+with open("my_palette.json") as f:
+    custom_palette = json.load(f)
+
 # Register custom colormaps
 custom_colormaps = {
     "sst_high_contrast": sst_colormap,
+    "custom_palette": custom_palette
 }
 
 # Register the custom colormap with rio-tiler
@@ -132,8 +142,8 @@ ColorMapParams = create_colormap_dependency(cmap)
 
 # Initialize the FastAPI app
 app = FastAPI(
-    title="ABI-GOES19 Sea Surface Temperature TiTiler",
-    description="A TiTiler instance for serving ABI-GOES19 sea surface temperature data with temperature conversion to Fahrenheit",
+    title="Salty Tiler: Ocean Data TiTiler",
+    description="A TiTiler instance for serving temperature and chlorophyll data with temperature conversion to Fahrenheit",
     version="0.1.0",
 )
 
@@ -154,6 +164,10 @@ cog = TilerFactory(
 
 # Include the router with "/cog" prefix - this creates /cog/{z}/{x}/{y} routes
 app.include_router(cog.router, prefix="/cog")
+
+# Register application-specific routers
+app.include_router(metadata_router)
+app.include_router(tiles_router)
 
 # Add exception handlers
 add_exception_handlers(app, DEFAULT_STATUS_CODES)

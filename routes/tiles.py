@@ -2,13 +2,8 @@ from fastapi import APIRouter, HTTPException, Response, Query, Path
 from typing import Any
 from mock_supabase import get_entry_by_id
 from services.tiler import render_tile
-import json
 
 router = APIRouter()
-
-# Load palette at import (assume my_palette.json is in project root)
-with open("my_palette.json") as f:
-    CUSTOM_PALETTE = json.load(f)
 
 # Dataset default ranges (should match metadata.py)
 DATASET_RANGES = {
@@ -54,7 +49,7 @@ def tile_by_entry(
             path=path,
             z=z, x=x, y=y,
             min_value=min_val, max_value=max_val,
-            colormap=CUSTOM_PALETTE,
+            colormap_name="custom_palette", 
             colormap_bins=256,
         )
     except Exception:

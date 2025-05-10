@@ -1,15 +1,21 @@
-# NetCDF to Cloud-Optimized GeoTIFF Converter
+# Salty Tiler
 
-A flexible, configuration-based tool for converting various NetCDF datasets (ABI-GOES19, LEO, etc.) to Cloud-Optimized GeoTIFFs (COGs), preserving high resolution and data quality.
+A complete toolkit for processing ocean datasets (SST, chlorophyll) from NetCDF to cloud-optimized GeoTIFFs and serving them through a TiTiler-based API. Includes temperature unit conversion (C/K to F) and custom palette rendering.
 
 ## Features
 
-- Support for multiple NetCDF dataset types
-- Configuration-based approach for different processing parameters
-- Batch processing capability
-- Preservation of high-resolution data and original geospatial properties
-- Customizable resampling methods and compression options
-- JSON configuration export/import
+- **Data Processing**:
+  - Convert NetCDF datasets to Cloud-Optimized GeoTIFFs (COGs)
+  - Support for multiple sources (ABI-GOES19, LEO, VIIRS)
+  - Automatic detection of units and CRS
+  - Temperature conversion (C/K → F)
+  - Generation of overviews for efficient tiling
+- **Tile Server**:
+  - FastAPI + TiTiler based API for rendering tiles
+  - Custom colormap support for ocean data visualization
+  - Metadata endpoints for dataset ranges
+  - Configurable min/max value scaling
+  - Entry-based lookup (with Supabase integration support)
 
 ## Installation
 
@@ -17,7 +23,7 @@ A flexible, configuration-based tool for converting various NetCDF datasets (ABI
 
    ```
    git clone <repository-url>
-   cd <repository-dir>
+   cd salty-tiler
    ```
 
 2. Create and activate a virtual environment:
@@ -34,104 +40,106 @@ A flexible, configuration-based tool for converting various NetCDF datasets (ABI
 
 ## Usage
 
-### Basic Usage
+### Data Conversion
 
-Run the script with default configurations:
+Convert NetCDF files to COGs:
 
 ```bash
-python convert_nc_to_cog.py
+python convert_all_nc_to_cog.py
 ```
 
-This will process both ABI-GOES19 and LEO datasets with their respective default configurations.
+This will:
 
-### Custom Configuration
+1. Process all .nc files in `raw_netcdf/` directory
+2. Extract variables like 'sea_surface_temperature' or 'chlor_a'
+3. Convert temperature units to Fahrenheit if needed
+4. Create optimized COGs in the `cogs/` directory
 
-You can create and save custom configurations:
+### Running the Tile Server
 
-```python
-from convert_nc_to_cog import ProcessingConfig, DatasetType, save_config
+#### Quick Start
 
-# Create a custom configuration
-config = ProcessingConfig(
-    dataset_type=DatasetType.LEO,
-    input_file="path/to/your/file.nc",
-    output_file="path/to/output.tif",
-    subdataset="sea_surface_temperature",
-    resample_method="cubic",  # Higher quality resampling
-    additional_options={"warp_dstnodata": "-9999"}  # Extra GDAL options
-)
+The simplest way to start everything is:
 
-# Save the configuration for later use
-save_config(config, "configs/my_custom_config.json")
+```bash
+python start.py
 ```
 
-Then load and use it:
+This will:
 
-```python
-from convert_nc_to_cog import load_config, process_file
+1. Start a static file server for COGs on port 8000
+2. Start the TiTiler API on port 8001
+3. Open the API documentation in your browser
 
-# Load a saved configuration
-config = load_config("configs/my_custom_config.json")
+#### Manual Start
 
-# Process a file with this configuration
-output_file = process_file(config)
+Alternatively, you can start components individually:
+
+1. Start the static file server:
+
+   ```bash
+   python -m http.server 8000
+   ```
+
+2. Start the TiTiler API:
+   ```bash
+   python app.py
+   ```
+
+This will launch a FastAPI application at http://127.0.0.1:8001/ with these endpoints:
+
+- `/cog/tiles/{z}/{x}/{y}.png` - Standard TiTiler COG tiles endpoint
+- `/tiles/{entry_id}/{z}/{x}/{y}.png` - Entry-based tiles (using Supabase lookup)
+- `/metadata/{dataset}/range` - Get min/max range for a dataset
+
+### Example API Usage
+
+Fetch a tile using the entry-based endpoint:
+
+```
+http://localhost:8001/tiles/test-entry-1/6/12/20.png?min=32&max=86
 ```
 
-### Processing Multiple Files
+Fetch a tile directly using the COG endpoint:
 
-```python
-from convert_nc_to_cog import ProcessingConfig, DatasetType, batch_process
-
-configs = [
-    ProcessingConfig(
-        dataset_type=DatasetType.ABI_GOES19,
-        input_file="data/file1.nc",
-        output_file="data/file1_cog.tif",
-        subdataset="sea_surface_temperature"
-    ),
-    ProcessingConfig(
-        dataset_type=DatasetType.LEO,
-        input_file="data/file2.nc",
-        output_file="data/file2_cog.tif",
-        subdataset="sea_surface_temperature"
-    )
-]
-
-output_files = batch_process(configs)
+```
+http://localhost:8001/cog/tiles/WebMercatorQuad/6/12/20.png?url=cogs/sst_keys_2025-05-01.tif&rescale=32,86&colormap_name=sst_high_contrast
 ```
 
-## Supported Dataset Types
+## API Documentation
 
-Currently supported dataset types:
+API docs are available at:
 
-1. **ABI_GOES19** - GOES-19 Advanced Baseline Imager data
-2. **LEO** - Low Earth Orbit satellite data
+- http://127.0.0.1:8001/docs (Swagger UI)
+- http://127.0.0.1:8001/redoc (ReDoc)
 
-## Configuration Options
+## Configuration
 
-| Option             | Description                                 | Default                   |
-| ------------------ | ------------------------------------------- | ------------------------- |
-| dataset_type       | Type of NetCDF dataset                      | (required)                |
-| input_file         | Path to input NetCDF file                   | (required)                |
-| output_file        | Path to output COG file                     | (required)                |
-| subdataset         | NetCDF subdataset to extract                | "sea_surface_temperature" |
-| temp_file          | Optional path for temporary file            | (auto-generated)          |
-| bbox               | Optional bounding box (xmin,ymin,xmax,ymax) | None                      |
-| resample_method    | Resampling method for gdalwarp              | "bilinear"                |
-| create_overviews   | Whether to create overviews                 | True                      |
-| compression        | Compression method                          | "DEFLATE"                 |
-| predictor          | Predictor value for compression             | 2                         |
-| additional_options | Additional GDAL options                     | {}                        |
+The application uses several configuration files:
 
-### Note About Spatial Extent
+- `my_palette.json` - Custom colormap for rendering
+- `routes/metadata.py` - Dataset ranges
+- `mock_supabase.py` - Entry lookup (replace with real Supabase in production)
 
-The system now assumes that input data is already in the correct spatial format and preserves the original extent. The `bbox` parameter is optional and only needs to be specified if you explicitly want to clip or subset the data to a specific geographic region.
+## Project Structure
 
-## Requirements
-
-- Python 3.8+
-- GDAL (with Python bindings)
-- Pydantic
+```
+salty-tiler/
+├── app.py                    # Main FastAPI application
+├── start.py                  # Start script for all services
+├── convert_all_nc_to_cog.py  # NetCDF to COG converter
+├── my_palette.json           # Custom palette definition
+├── mock_supabase.py          # Entry lookup (for demo)
+├── routes/
+│   ├── metadata.py           # Dataset metadata endpoints
+│   └── tiles.py              # Tile endpoints
+├── schemas/
+│   └── entry.py              # Pydantic models for entries
+├── services/
+│   └── tiler.py              # Tile rendering service
+├── cogs/                     # Output COGs directory
+└── raw_netcdf/               # Input NetCDF directory
+```
 
 ## License
 
