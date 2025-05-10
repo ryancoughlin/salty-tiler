@@ -106,6 +106,28 @@ Fetch a tile directly using the COG endpoint:
 http://localhost:8001/cog/tiles/WebMercatorQuad/6/12/20.png?url=cogs/sst_keys_2025-05-01.tif&rescale=32,86&colormap_name=sst_high_contrast
 ```
 
+### Viewing Tiles in the Mapbox Viewer
+
+A Mapbox GL JS frontend is included for testing and visualizing your ocean tiles. This lives in the `mapbox-viewer/` subfolder and can be run alongside the API server.
+
+#### Quick Start
+
+1. Open a new terminal and navigate to the viewer:
+
+   ```bash
+   cd mapbox-viewer
+   npm install
+   npm run dev
+   ```
+
+2. This will open the viewer in your browser at [http://localhost:3000](http://localhost:3000).
+
+3. Make sure the tile server (FastAPI/TiTiler) is running at [http://127.0.0.1:8001](http://127.0.0.1:8001) as described above.
+
+4. The viewer will automatically request tiles from your local COGs and display them on the map. You can adjust dataset, colormap, and value range in the UI.
+
+For advanced configuration (e.g., changing the TiTiler URL, default dataset, or map view), see `mapbox-viewer/README.md` and edit `src/main.js` as needed.
+
 ## API Documentation
 
 API docs are available at:
