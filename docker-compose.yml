@@ -21,3 +21,7 @@ services:
       start_period: 40s
     networks:
       - salty_network
+
+networks:
+  salty_network:
+    external: true
