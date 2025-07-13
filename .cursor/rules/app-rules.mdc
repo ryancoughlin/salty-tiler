@@ -133,7 +133,7 @@ Automation: simple script to process all NC files in a folder to COGs (using you
 
 salty-tiler/
 ├── backend.py                # Main FastAPI app, TiTiler integration, endpoint registration
-├── my_palette.json           # Placeholder 256-color palette (hex strings)
+├── sst_colormap.json           # Placeholder 256-color palette (hex strings)
 ├── mock_supabase.py          # In-memory mock for Supabase entry lookup
 ├── routes/
 │   ├── metadata.py           # /metadata/{dataset}/range endpoint

@@ -127,7 +127,7 @@ def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> 
 sst_colormap = create_continuous_colormap(SST_COLORS_HIGH_CONTRAST, 256)
 
 # Load palette from JSON
-with open("my_palette.json") as f:
+with open("sst_colormap.json") as f:
     custom_palette = json.load(f)
 
 # Register custom colormaps

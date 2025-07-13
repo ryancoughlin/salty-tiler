@@ -1,77 +1,60 @@
 """
-Mock Supabase entry lookup for local development/testing.
-Replace with real Supabase client and queries for production.
-
-Entry schema:
-{
-    "uuid": str,  # entry_id
-    "dataset_id": str,
-    "region": str,
-    "layers": {
-        "geotiff": {
-            "date": str,  # YYYY-MM-DD
-            "path": str   # local COG path
-        }
-    }
-}
+Mock Supabase integration for testing and development.
+Replace with real Supabase client in production.
 """
 from typing import Dict, Any, Optional
-import os
+from pathlib import Path
 
-# Example hardcoded entries for testing
-# For development flexibility, look for COGs in the cogs directory to use in mocked entries
-def _find_cog_file(dataset: str = "sst") -> Optional[str]:
-    cogs_dir = "cogs"
-    if not os.path.exists(cogs_dir):
-        return None
-    
-    # Find a suitable COG file for the dataset
-    for filename in os.listdir(cogs_dir):
-        if filename.lower().endswith(".tif"):
-            if dataset == "sst" and any(x in filename.lower() for x in ["sst", "temperature"]):
-                return os.path.join(cogs_dir, filename)
-            elif dataset == "chlorophyll" and any(x in filename.lower() for x in ["chlor", "chlorophyll"]):
-                return os.path.join(cogs_dir, filename)
-    
-    # No specific match, return first TIF if any
-    for filename in os.listdir(cogs_dir):
-        if filename.lower().endswith(".tif"):
-            return os.path.join(cogs_dir, filename)
-            
-    return None
-
-# Dynamically find COG files for each dataset
-sst_path = _find_cog_file("sst") or "cogs/sst_example.tif"
-chlor_path = _find_cog_file("chlorophyll") or "cogs/chlor_example.tif"
-
+# Mock entries database - maps entry_id to entry data
 MOCK_ENTRIES: Dict[str, Dict[str, Any]] = {
     "test-entry-1": {
-        "uuid": "test-entry-1",
+        "id": "test-entry-1",
         "dataset_id": "sst",
-        "region": "keys",
+        "region": "florida_keys",
         "layers": {
             "geotiff": {
+                "path": "cogs/sea_surface_temperature_LEO-2025-05-01T000000Z_F_cog.tif",
                 "date": "2025-05-01",
-                "path": sst_path
+                "format": "COG"
             }
         }
     },
     "test-entry-2": {
-        "uuid": "test-entry-2",
+        "id": "test-entry-2", 
         "dataset_id": "chlorophyll",
-        "region": "gulf",
+        "region": "global",
         "layers": {
             "geotiff": {
-                "date": "2025-05-01",
-                "path": chlor_path
+                "path": "cogs/chlor_a_2025-04-29T000000Z_mgm^3_cog.tif",
+                "date": "2025-04-29",
+                "format": "COG"
             }
         }
     }
 }
 
-def get_entry_by_id(entry_id: str) -> Dict[str, Any]:
+def get_entry_by_id(entry_id: str) -> Optional[Dict[str, Any]]:
     """
-    Retrieve entry by entry_id from the mock database.
-    Replace with Supabase query in production.
+    Mock function to get entry by ID.
+    In production, this would query the Supabase entries table.
     """
-    return MOCK_ENTRIES.get(entry_id) 
+    entry = MOCK_ENTRIES.get(entry_id)
+    if entry:
+        # Verify that the COG file actually exists
+        cog_path = Path(entry["layers"]["geotiff"]["path"])
+        if cog_path.exists():
+            return entry
+    return None
+
+def list_entries() -> Dict[str, Dict[str, Any]]:
+    """
+    Mock function to list all entries.
+    In production, this would query the Supabase entries table.
+    """
+    # Only return entries where the COG file exists
+    valid_entries = {}
+    for entry_id, entry in MOCK_ENTRIES.items():
+        cog_path = Path(entry["layers"]["geotiff"]["path"])
+        if cog_path.exists():
+            valid_entries[entry_id] = entry
+    return valid_entries 

@@ -1,6 +1,17 @@
 # Salty Tiler
 
-A complete toolkit for processing ocean datasets (SST, chlorophyll) from NetCDF to cloud-optimized GeoTIFFs and serving them through a TiTiler-based API. Includes temperature unit conversion (C/K to F) and custom palette rendering.
+A TiTiler-based microservice for processing ocean datasets (SST, chlorophyll) from NetCDF to cloud-optimized GeoTIFFs and serving them as map tiles. This service is designed to be integrated into larger application pipelines as a standalone tile rendering service.
+
+## Overview
+
+Salty Tiler provides a FastAPI + TiTiler service that:
+
+1. Converts NetCDF ocean datasets to Cloud-Optimized GeoTIFFs (COGs)
+2. Serves map tiles with custom colormaps and dynamic scaling
+3. Handles temperature unit conversion (C/K → F) automatically
+4. Provides metadata endpoints for dataset ranges
+
+**Note**: This is a backend tile service. The included Mapbox viewer is for debugging/testing only and will not be part of production deployments.
 
 ## Features
 
@@ -106,11 +117,11 @@ Fetch a tile directly using the COG endpoint:
 http://localhost:8001/cog/tiles/WebMercatorQuad/6/12/20.png?url=cogs/sst_keys_2025-05-01.tif&rescale=32,86&colormap_name=sst_high_contrast
 ```
 
-### Viewing Tiles in the Mapbox Viewer
+### Debug Viewer (Development Only)
 
-A Mapbox GL JS frontend is included for testing and visualizing your ocean tiles. This lives in the `mapbox-viewer/` subfolder and can be run alongside the API server.
+A Mapbox GL JS frontend is included for testing and debugging tile rendering. **This viewer is for development/debugging purposes only and will not be part of production deployments.**
 
-#### Quick Start
+#### Quick Start (Debug Only)
 
 1. Open a new terminal and navigate to the viewer:
 
@@ -120,13 +131,94 @@ A Mapbox GL JS frontend is included for testing and visualizing your ocean tiles
    npm run dev
    ```
 
-2. This will open the viewer in your browser at [http://localhost:3000](http://localhost:3000).
+2. This will open the debug viewer at [http://localhost:3000](http://localhost:3000).
 
-3. Make sure the tile server (FastAPI/TiTiler) is running at [http://127.0.0.1:8001](http://127.0.0.1:8001) as described above.
+3. Make sure the tile server is running at [http://127.0.0.1:8001](http://127.0.0.1:8001).
 
-4. The viewer will automatically request tiles from your local COGs and display them on the map. You can adjust dataset, colormap, and value range in the UI.
+4. Use the viewer to test tile rendering, colormaps, and value ranges during development.
 
-For advanced configuration (e.g., changing the TiTiler URL, default dataset, or map view), see `mapbox-viewer/README.md` and edit `src/main.js` as needed.
+## TiTiler Integration & File Format Requirements
+
+### How TiTiler Works
+
+TiTiler is a dynamic tile server that renders map tiles on-demand from Cloud-Optimized GeoTIFFs (COGs). It provides:
+
+- **Dynamic Rendering**: Tiles are generated in real-time with custom styling
+- **Multiple Formats**: Supports PNG, JPEG, WebP output formats
+- **Custom Colormaps**: Apply color palettes to single-band raster data
+- **Value Scaling**: Rescale data values for optimal visualization
+- **Resampling**: Bilinear, nearest, cubic interpolation options
+
+### File Format Requirements
+
+#### Input: NetCDF Files
+
+Your application should download NetCDF files with these characteristics:
+
+- **Variables**: Single data variable (e.g., `sea_surface_temperature`, `chlor_a`)
+- **Dimensions**: `(time, latitude, longitude)` or `(latitude, longitude)`
+- **CRS Information**: Lat/lon coordinates with proper metadata
+- **Units**: Temperature in Celsius or Kelvin, chlorophyll in mg/m³
+
+#### Output: Cloud-Optimized GeoTIFFs (COGs)
+
+The conversion process creates COGs optimized for tile serving:
+
+- **Format**: GeoTIFF with COG structure
+- **Tiling**: 512x512 pixel internal tiles
+- **Overviews**: Multiple resolution levels (2x, 4x, 8x, 16x, 32x)
+- **Compression**: DEFLATE with predictor for efficient storage
+- **Projection**: EPSG:4326 (WGS84) for web compatibility
+
+### Integration Workflow
+
+1. **Download NetCDF**: Your app downloads ocean data files
+2. **Convert to COG**: Use `convert_all_nc_to_cog.py` or integrate conversion logic
+3. **Store COGs**: Place COG files in accessible storage (local, S3, etc.)
+4. **Tile Requests**: Frontend requests tiles via TiTiler endpoints
+5. **Dynamic Rendering**: TiTiler generates tiles with custom styling
+
+### API Endpoints for Integration
+
+#### Direct COG Tiles
+
+```
+GET /cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png
+```
+
+Parameters:
+
+- `url`: Path to COG file
+- `rescale`: Min,max values (e.g., `32,86`)
+- `colormap_name`: Named colormap (e.g., `sst_high_contrast`)
+- `resampling`: Interpolation method (`bilinear`, `nearest`, `cubic`)
+
+#### Entry-Based Tiles (with Database)
+
+```
+GET /tiles/{entry_id}/{z}/{x}/{y}.png
+```
+
+Parameters:
+
+- `entry_id`: Database entry UUID
+- `min`, `max`: Value range for scaling
+- `layer`: Layer key (default: `geotiff`)
+
+#### Metadata
+
+```
+GET /metadata/{dataset}/range
+```
+
+Returns min/max values for dataset scaling.
+
+### Performance Considerations
+
+- **COG Structure**: Internal tiling and overviews enable efficient partial reads
+- **Caching**: Implement tile caching at CDN/application level
+- **Storage**: Use fast storage (SSD, S3) for COG files
+- **Scaling**: TiTiler can be horizontally scaled behind load balancer
 
 ## API Documentation
 
@@ -135,23 +227,66 @@ API docs are available at:
 - http://127.0.0.1:8001/docs (Swagger UI)
 - http://127.0.0.1:8001/redoc (ReDoc)
 
+## Service Integration
+
+### Deployment as Microservice
+
+This service is designed to be deployed as a standalone microservice in your application architecture:
+
+```
+Your App Pipeline:
+1. Download NetCDF files
+2. Convert to COGs (using conversion logic from this repo)
+3. Store COGs in accessible location
+4. Make tile requests to Salty Tiler service
+5. Serve tiles to frontend mapping components
+```
+
+### Docker Deployment (Recommended)
+
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+EXPOSE 8001
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8001"]
+```
+
+### Environment Variables
+
+- `TILER_HOST`: Host address (default: 0.0.0.0)
+- `TILER_PORT`: Port number (default: 8001)
+- `COG_BASE_PATH`: Base path for COG files
+- `SUPABASE_URL`: Supabase project URL (if using database integration)
+- `SUPABASE_KEY`: Supabase API key
+
+### Health Check Endpoint
+
+```
+GET /health
+```
+
+Returns service status for load balancer health checks.
+
 ## Configuration
 
 The application uses several configuration files:
 
-- `my_palette.json` - Custom colormap for rendering
+- `sst_colormap.json` - Custom colormap for rendering
 - `routes/metadata.py` - Dataset ranges
 - `mock_supabase.py` - Entry lookup (replace with real Supabase in production)
 
 ## Project Structure
 
 ```
-salty-tiler/
+salty-tiler/                  # TiTiler Microservice
 ├── app.py                    # Main FastAPI application
-├── start.py                  # Start script for all services
-├── convert_all_nc_to_cog.py  # NetCDF to COG converter
-├── my_palette.json           # Custom palette definition
-├── mock_supabase.py          # Entry lookup (for demo)
+├── start.py                  # Development start script
+├── convert_all_nc_to_cog.py  # NetCDF to COG converter (integrate into your app)
+├── sst_colormap.json         # Custom palette definition
+├── mock_supabase.py          # Entry lookup (replace with real DB)
 ├── routes/
 │   ├── metadata.py           # Dataset metadata endpoints
 │   └── tiles.py              # Tile endpoints
@@ -159,9 +294,18 @@ salty-tiler/
 │   └── entry.py              # Pydantic models for entries
 ├── services/
 │   └── tiler.py              # Tile rendering service
-├── cogs/                     # Output COGs directory
-└── raw_netcdf/               # Input NetCDF directory
+├── mapbox-viewer/            # Debug viewer (development only)
+├── cogs/                     # COG files storage
+└── raw_netcdf/               # NetCDF files (for testing)
 ```
+
+### Key Files for Integration
+
+- **`app.py`**: Main FastAPI application - deploy this as your microservice
+- **`convert_all_nc_to_cog.py`**: NetCDF conversion logic - integrate into your app's data pipeline
+- **`routes/tiles.py`**: Tile serving endpoints - the core API your frontend will call
+- **`services/tiler.py`**: TiTiler wrapper - handles the actual tile rendering
+- **`sst_colormap.json`**: Color palettes - customize for your data visualization needs
 
 ## License
 

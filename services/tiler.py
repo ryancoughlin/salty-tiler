@@ -5,10 +5,7 @@ from functools import lru_cache
 import json
 
 # TilerFactory instance with bilinear resampling
-cog_tiler = TilerFactory(
-    reader="rio_cog",
-    default_reader_options={"resampling_method": "bilinear"}
-)
+cog_tiler = TilerFactory()
 
 # Simple set to track seen cache keys for hit/miss logging (dev only)
 _seen_cache_keys = set()
@@ -36,6 +33,7 @@ def _render_tile_cached(
         "tile_format": ImageType.png,
         "scale_range": [min_value, max_value],
         "colormap_bins": colormap_bins,
+        "resampling_method": "bilinear",
         "z": z, "x": x, "y": y
     }
     
