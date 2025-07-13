@@ -1,4 +1,4 @@
-FROM osgeo/gdal:ubuntu-small-3.11.3
+FROM ghcr.io/osgeo/gdal:ubuntu-small-3.11.3
 
 # Install Python 3.11 and pip
 RUN apt-get update && apt-get install -y \
