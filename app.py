@@ -11,9 +11,8 @@ from titiler.core.errors import DEFAULT_STATUS_CODES, add_exception_handlers
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Tuple, Any, List
 import uvicorn
-from pathlib import Path
-import numpy as np
 import json
+import os
 
 # Import routes
 from routes.metadata import router as metadata_router
@@ -23,46 +22,7 @@ from routes.tiles import router as tiles_router
 from rio_tiler.colormap import cmap as default_cmap
 from titiler.core.dependencies import create_colormap_dependency
 
-# Import required classes for custom algorithm
-from titiler.core.algorithm import BaseAlgorithm, algorithms as default_algorithms
-from rio_tiler.models import ImageData
 
-class TemperatureConverter(BaseAlgorithm):
-    """Convert temperature units from Celsius or Kelvin to Fahrenheit.
-    
-    The default behavior assumes input is in Celsius.
-    To convert from Kelvin, set from_kelvin=True.
-    """
-    
-    # Parameters with defaults
-    from_kelvin: bool = False
-    
-    def __call__(self, img: ImageData) -> ImageData:
-        # Deep copy the data to avoid modifying the original
-        data = img.data.copy()
-        
-        # Convert the temperature values
-        if self.from_kelvin:
-            # Convert from Kelvin to Fahrenheit: F = (K - 273.15) * 9/5 + 32
-            data = (data - 273.15) * 9/5 + 32
-        else:
-            # Convert from Celsius to Fahrenheit: F = C * 9/5 + 32
-            data = data * 9/5 + 32
-        
-        # Create output ImageData with converted values
-        return ImageData(
-            data,
-            assets=img.assets,
-            crs=img.crs,
-            bounds=img.bounds,
-        )
-
-# Register the custom algorithm
-algorithms = default_algorithms.register(
-    {
-        "fahrenheit": TemperatureConverter,
-    }
-)
 
 # Define custom SST color map based on user's high contrast palette
 # Convert the list of hex colors to a continuous colormap
@@ -147,18 +107,21 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Add CORS middleware to allow requests from anywhere
+# Configure CORS from environment variables
+cors_origins = os.getenv("CORS_ORIGINS", "*").split(",")
+cors_methods = os.getenv("CORS_METHODS", "GET,POST,OPTIONS").split(",")
+cors_headers = os.getenv("CORS_HEADERS", "*").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
+    allow_methods=cors_methods,
+    allow_headers=cors_headers,
 )
 
-# Create a TilerFactory with the custom algorithms and colormap
+# Create a TilerFactory with the custom colormap
 cog = TilerFactory(
-    process_dependency=algorithms.dependency,
     colormap_dependency=ColorMapParams
 )
 
@@ -169,8 +132,24 @@ app.include_router(cog.router, prefix="/cog")
 app.include_router(metadata_router)
 app.include_router(tiles_router)
 
+# Health check endpoint for Docker
+@app.get("/health")
+def health_check():
+    """Health check endpoint for load balancer and Docker."""
+    return {"status": "healthy", "service": "salty-tiler"}
+
 # Add exception handlers
 add_exception_handlers(app, DEFAULT_STATUS_CODES)
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8001, reload=True) 
+    host = os.getenv("TILER_HOST", "0.0.0.0")
+    port = int(os.getenv("TILER_PORT", "8001"))
+    workers = int(os.getenv("WORKERS", "1"))
+    
+    uvicorn.run(
+        "app:app", 
+        host=host, 
+        port=port, 
+        workers=workers,
+        reload=os.getenv("DEBUG", "false").lower() == "true"
+    ) 

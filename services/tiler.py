@@ -3,6 +3,7 @@ from titiler.core.factory import TilerFactory
 from titiler.core.resources.enums import ImageType
 from functools import lru_cache
 import json
+import os
 
 # TilerFactory instance with bilinear resampling
 cog_tiler = TilerFactory()
@@ -16,7 +17,7 @@ def _serialize_colormap(colormap: Any) -> str:
     # Sort keys for deterministic output
     return json.dumps(colormap, sort_keys=True) if colormap else "null"
 
-@lru_cache(maxsize=2048)
+@lru_cache(maxsize=int(os.getenv("TILE_CACHE_SIZE", "2048")))
 def _render_tile_cached(
     path: str,
     z: int,
@@ -59,10 +60,10 @@ def render_tile(
     """
     Render a PNG tile from a COG using TiTiler with bilinear resampling and a colormap.
     Returns PNG bytes. Uses in-memory LRU cache for speed.
-    Prints cache hit/miss for debugging.
+    Supports both local paths and external URLs.
     
     Args:
-        path: Path to the COG file
+        path: Path or URL to the COG file
         z, x, y: Tile coordinates
         min_value, max_value: Scale range for colormap
         colormap: Custom colormap dict
@@ -71,9 +72,13 @@ def render_tile(
     """
     colormap_serialized = _serialize_colormap(colormap)
     key = (path, z, x, y, min_value, max_value, colormap_serialized, colormap_name, colormap_bins)
-    if key in _seen_cache_keys:
-        print(f"[CACHE] HIT: {path} z={z} x={x} y={y} min={min_value} max={max_value}")
-    else:
-        print(f"[CACHE] MISS: {path} z={z} x={x} y={y} min={min_value} max={max_value}")
+    
+    # Log cache status
+    cache_status = "HIT" if key in _seen_cache_keys else "MISS"
+    url_type = "URL" if path.startswith("http") else "LOCAL"
+    print(f"[CACHE] {cache_status}: {url_type} {path} z={z} x={x} y={y} min={min_value} max={max_value}")
+    
+    if key not in _seen_cache_keys:
         _seen_cache_keys.add(key)
+    
     return _render_tile_cached(*key) 
