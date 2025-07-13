@@ -1,18 +1,17 @@
 FROM ghcr.io/osgeo/gdal:ubuntu-small-3.11.3
 
-# Install Python 3.11 and pip
+# Install Python 3 and pip (using system default Python version)
 RUN apt-get update && apt-get install -y \
-    python3.11 \
-    python3.11-pip \
-    python3.11-dev \
+    python3 \
+    python3-pip \
+    python3-dev \
     gcc \
     g++ \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create symlinks for python and pip
-RUN ln -sf /usr/bin/python3.11 /usr/bin/python && \
-    ln -sf /usr/bin/python3.11 /usr/bin/python3 && \
+RUN ln -sf /usr/bin/python3 /usr/bin/python && \
     ln -sf /usr/bin/pip3 /usr/bin/pip
 
 # Set environment variables for GDAL
