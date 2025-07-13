@@ -4,6 +4,7 @@ FROM ghcr.io/osgeo/gdal:ubuntu-small-3.11.3
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
+    python3-venv \
     python3-dev \
     gcc \
     g++ \
@@ -26,7 +27,9 @@ WORKDIR /app
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies
+# Create virtual environment and install Python dependencies
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
@@ -38,6 +41,9 @@ EXPOSE 8001
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8001/health || exit 1
+
+# Ensure virtual environment is active for runtime
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Run the application
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8001"] 
