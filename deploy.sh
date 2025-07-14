@@ -21,13 +21,20 @@ check_docker() {
 deploy_with_compose() {
     echo "🏗️  Building and deploying with docker-compose..."
     
-    # Stop existing containers
+    # Stop existing containers with force and remove orphans
     echo "🛑 Stopping existing containers..."
-    docker-compose down || true
+    docker-compose down --remove-orphans || true
+    
+    # Force remove any lingering containers with the same name
+    echo "🧹 Cleaning up any existing containers..."
+    docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+    
+    # Prune any dangling containers
+    docker container prune -f || true
     
     # Build and start new containers
     echo "🚀 Building and starting containers..."
-    docker-compose up --build -d
+    docker-compose up --build -d --force-recreate
     
     echo "✅ Container started successfully"
     echo "🌐 Service available at: http://localhost:$PORT"
@@ -69,7 +76,8 @@ case "${1:-deploy}" in
         ;;
     "stop")
         echo "🛑 Stopping containers..."
-        docker-compose down
+        docker-compose down --remove-orphans
+        docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
         echo "✅ Containers stopped"
         ;;
     "restart")
