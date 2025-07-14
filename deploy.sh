@@ -17,43 +17,17 @@ check_docker() {
     fi
 }
 
-# Function to build the Docker image
-build_image() {
-    echo "🏗️  Building Docker image: $IMAGE_NAME"
-    docker build -t $IMAGE_NAME .
-    echo "✅ Docker image built successfully"
-}
-
-# Function to stop and remove existing container
-cleanup_container() {
-    if docker ps -a --format 'table {{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
-        echo "🧹 Stopping and removing existing container: $CONTAINER_NAME"
-        docker stop $CONTAINER_NAME || true
-        docker rm $CONTAINER_NAME || true
-    fi
-}
-
-# Function to run the container
-run_container() {
-    echo "🚀 Starting container: $CONTAINER_NAME"
+# Function to deploy using docker-compose
+deploy_with_compose() {
+    echo "🏗️  Building and deploying with docker-compose..."
     
-    # Check if env file exists
-    if [ -f "$ENV_FILE" ]; then
-        echo "📋 Using environment file: $ENV_FILE"
-        ENV_FLAG="--env-file $ENV_FILE"
-    else
-        echo "⚠️  No environment file found. Using default configuration."
-        ENV_FLAG=""
-    fi
+    # Stop existing containers
+    echo "🛑 Stopping existing containers..."
+    docker-compose down || true
     
-    # Run the container
-    docker run -d \
-        --name $CONTAINER_NAME \
-        -p $PORT:8001 \
-        -v "$(pwd)/sst_colormap.json:/app/sst_colormap.json:ro" \
-        $ENV_FLAG \
-        --restart unless-stopped \
-        $IMAGE_NAME
+    # Build and start new containers
+    echo "🚀 Building and starting containers..."
+    docker-compose up --build -d
     
     echo "✅ Container started successfully"
     echo "🌐 Service available at: http://localhost:$PORT"
@@ -64,13 +38,13 @@ run_container() {
 # Function to show logs
 show_logs() {
     echo "📜 Container logs:"
-    docker logs -f $CONTAINER_NAME
+    docker-compose logs -f salty-tiler
 }
 
 # Function to show status
 show_status() {
     echo "📊 Container status:"
-    docker ps --filter "name=$CONTAINER_NAME"
+    docker-compose ps
     echo ""
     echo "🔍 Health check:"
     curl -f http://localhost:$PORT/health 2>/dev/null && echo "✅ Healthy" || echo "❌ Unhealthy"
@@ -78,15 +52,9 @@ show_status() {
 
 # Main script logic
 case "${1:-deploy}" in
-    "build")
-        check_docker
-        build_image
-        ;;
     "deploy")
         check_docker
-        build_image
-        cleanup_container
-        run_container
+        deploy_with_compose
         echo ""
         echo "🎉 Deployment complete!"
         echo "   Use './deploy.sh logs' to view logs"
@@ -100,24 +68,24 @@ case "${1:-deploy}" in
         show_status
         ;;
     "stop")
-        cleanup_container
-        echo "🛑 Container stopped and removed"
+        echo "🛑 Stopping containers..."
+        docker-compose down
+        echo "✅ Containers stopped"
         ;;
     "restart")
-        cleanup_container
-        run_container
-        echo "🔄 Container restarted"
+        echo "🔄 Restarting containers..."
+        deploy_with_compose
+        echo "✅ Containers restarted"
         ;;
     *)
-        echo "Usage: $0 {build|deploy|logs|status|stop|restart}"
+        echo "Usage: $0 {deploy|logs|status|stop|restart}"
         echo ""
         echo "Commands:"
-        echo "  build   - Build Docker image only"
         echo "  deploy  - Build and deploy container (default)"
         echo "  logs    - Show container logs"
         echo "  status  - Show container status and health"
-        echo "  stop    - Stop and remove container"
-        echo "  restart - Restart container"
+        echo "  stop    - Stop containers"
+        echo "  restart - Restart containers"
         exit 1
         ;;
 esac 
