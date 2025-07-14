@@ -41,7 +41,9 @@ SST_COLORS_HIGH_CONTRAST = [
     '#7ff000', 
     '#ebf600', 
     '#fec44f', '#fdb347', '#fca23f', '#fb9137', '#fa802f',
-    '#f96f27', '#f85e1f', '#f74d17'
+    '#f96f27', '#f85e1f', '#f74d17', '#e6420e', '#d53e0d', 
+    '#c43a0c', '#b3360b', '#a2320a', '#912e09', '#802a08', 
+    '#6f2607', '#5e2206'
 ]
 
 # Create a fully interpolated colormap with 256 colors
