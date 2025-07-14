@@ -1,0 +1,100 @@
+name: 🌊 Deploy Salty Tiler
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: salty-tiler
+  CONTAINER_NAME: salty-tiler
+  PORT: 8001
+
+jobs:
+  deploy:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: 📋 Add Server to Known Hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: 🚀 Deploy to Server
+        run: |
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            set -e
+            
+            echo "🌊 Starting Salty Tiler deployment..."
+            
+            # Navigate to project directory
+            cd /salty-tiler
+            
+            # Pull latest changes
+            echo "📥 Pulling latest changes..."
+            git pull origin main
+            
+            # Stop existing containers
+            echo "🛑 Stopping existing containers..."
+            docker-compose down || true
+            
+            # Clean up old images
+            echo "🧹 Cleaning up old images..."
+            docker image prune -f
+            
+            # Build and start new containers
+            echo "🏗️  Building and starting containers..."
+            docker-compose up --build -d
+            
+            # Wait for health check
+            echo "⏳ Waiting for service to be healthy..."
+            timeout 120 bash -c 'until curl -f http://localhost:8001/health; do sleep 5; done'
+            
+            # Show status
+            echo "📊 Deployment status:"
+            docker-compose ps
+            
+            echo "✅ Deployment completed successfully!"
+            echo "🌐 Service available at: http://localhost:8001"
+            
+          EOF
+
+      - name: 🔍 Verify Deployment
+        run: |
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            # Check if service is responding
+            if curl -f http://localhost:8001/health > /dev/null 2>&1; then
+              echo "✅ Health check passed"
+            else
+              echo "❌ Health check failed"
+              exit 1
+            fi
+            
+            # Show recent logs
+            echo "📜 Recent logs:"
+            docker-compose logs --tail=20 salty-tiler
+          EOF
+
+      - name: 📢 Deployment Success
+        if: success()
+        run: |
+          echo "🎉 Deployment completed successfully!"
+          echo "🌐 Service is now available at your production URL"
+
+      - name: 🚨 Deployment Failed
+        if: failure()
+        run: |
+          echo "❌ Deployment failed!"
+          echo "Check the logs above for error details"
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            echo "📜 Full container logs:"
+            docker-compose logs salty-tiler
+          EOF
