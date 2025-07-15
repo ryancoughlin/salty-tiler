@@ -6,13 +6,16 @@ This application uses TiTiler to serve Cloud-Optimized GeoTIFF (COG) files
 containing sea surface temperature and chlorophyll data.
 """
 from fastapi import FastAPI
-from titiler.core.factory import TilerFactory
+from titiler.core.factory import TilerFactory, ColorMapFactory
 from titiler.core.errors import DEFAULT_STATUS_CODES, add_exception_handlers
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Tuple, Any, List
 import uvicorn
 import json
 import os
+
+# Import TiTiler middleware for caching
+from titiler.core.middleware import CacheControlMiddleware, TotalTimeMiddleware
 
 # Import routes
 from routes.metadata import router as metadata_router
@@ -122,13 +125,30 @@ app.add_middleware(
     allow_headers=cors_headers,
 )
 
-# Create a TilerFactory with the custom colormap
+# Add TiTiler middleware for caching
+# For ocean data timeline scrubbing, we want tiles to be cached for a reasonable duration
+# but not too long since data updates regularly
+# 6 hours provides good balance between performance and data freshness for timeline scrubbing
+cache_control_settings = "public, max-age=21600"  # 6 hour cache for tiles
+app.add_middleware(CacheControlMiddleware, cachecontrol=cache_control_settings)
+app.add_middleware(TotalTimeMiddleware)
+
+# Create a TilerFactory with the custom colormap and all standard endpoints
 cog = TilerFactory(
-    colormap_dependency=ColorMapParams
+    colormap_dependency=ColorMapParams,
+    add_preview=True,
+    add_part=True,
+    add_viewer=True,
 )
 
+# Create a ColorMapFactory to expose colormap discovery endpoints
+colormap_factory = ColorMapFactory(supported_colormaps=cmap)
+
 # Include the router with "/cog" prefix - this creates /cog/{z}/{x}/{y} routes
-app.include_router(cog.router, prefix="/cog")
+app.include_router(cog.router, prefix="/cog", tags=["Cloud Optimized GeoTIFF"])
+
+# Include the colormap router - this creates /colormaps endpoints
+app.include_router(colormap_factory.router, tags=["ColorMaps"])
 
 # Register application-specific routers
 app.include_router(metadata_router)
