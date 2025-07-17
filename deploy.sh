@@ -28,6 +28,12 @@ deploy_with_compose() {
     # Force remove any lingering containers with the same name
     echo "🧹 Cleaning up any existing containers..."
     docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+    # Wait until the container is fully removed
+    while [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; do
+        echo "⏳ Waiting for $CONTAINER_NAME to be fully removed..."
+        docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+        sleep 1
+    done
     
     # Prune any dangling containers
     docker container prune -f || true
@@ -78,6 +84,12 @@ case "${1:-deploy}" in
         echo "🛑 Stopping containers..."
         docker-compose down --remove-orphans
         docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+        # Wait until the container is fully removed
+        while [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; do
+            echo "⏳ Waiting for $CONTAINER_NAME to be fully removed..."
+            docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+            sleep 1
+        done
         echo "✅ Containers stopped"
         ;;
     "restart")
