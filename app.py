@@ -64,6 +64,20 @@ CHLOROPHYLL_COLORS = [
     "#FAAD35", "#FAA32D", "#FA9925", "#FA8F1D", "#FA7A00"
 ]
 
+# Salinity color scale
+SALINITY_COLORS = [
+    '#29186b',
+    '#2b2f8e',
+    '#224b9f',
+    '#1972b5',
+    '#1b9abe',
+    '#25beca',
+    '#52dbc1',
+    '#8aeaa8',
+    '#c5f298',
+    '#f9f287'
+]
+
 # Create a fully interpolated colormap with 256 colors
 def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> Dict[int, Tuple[int, int, int, int]]:
     """Create a continuous colormap by interpolating between colors in the list."""
@@ -106,6 +120,7 @@ def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> 
 # Generate the continuous colormaps
 sst_colormap = create_continuous_colormap(SST_COLORS_HIGH_CONTRAST, 256)
 chlorophyll_colormap = create_continuous_colormap(CHLOROPHYLL_COLORS, 256)
+salinity_colormap = create_continuous_colormap(SALINITY_COLORS, 256)
 
 # Load palette from JSON
 with open("sst_colormap.json") as f:
@@ -115,6 +130,7 @@ with open("sst_colormap.json") as f:
 custom_colormaps = {
     "sst_high_contrast": sst_colormap,
     "chlorophyll": chlorophyll_colormap,
+    "salinity": salinity_colormap,
     "custom_palette": custom_palette
 }
 
