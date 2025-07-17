@@ -46,7 +46,7 @@ def tile_from_external_cog(
         raise HTTPException(404, f"COG file not found or inaccessible: {cog_url}")
     
     # Determine dataset type from dataset name for range validation
-    dataset_type = "sst" if "sst" in dataset.lower() else "chlorophyll" if "chlor" in dataset.lower() else "sst"
+    dataset_type = "chlorophyll" if "chlor" in dataset.lower() else "sst"
     
     # Validate min/max ranges
     range_info = DATASET_RANGES.get(dataset_type, DATASET_RANGES["sst"])
@@ -63,8 +63,9 @@ def tile_from_external_cog(
             path=cog_url,
             z=z, x=x, y=y,
             min_value=min_val, max_value=max_val,
-            colormap_name="sst_high_contrast" if dataset_type == "sst" else "custom_palette",
+            colormap_name="sst_high_contrast" if dataset_type == "sst" else "chlorophyll",
             colormap_bins=256,
+            use_log_scale=(dataset_type == "chlorophyll"),
         )
     except Exception as e:
         raise HTTPException(404, f"Tile not available: {str(e)}")
@@ -112,8 +113,9 @@ def tile_from_url(
             path=url,
             z=z, x=x, y=y,
             min_value=min_val, max_value=max_val,
-            colormap_name="sst_high_contrast" if dataset == "sst" else "custom_palette",
+            colormap_name="sst_high_contrast" if dataset == "sst" else "chlorophyll",
             colormap_bins=256,
+            use_log_scale=(dataset == "chlorophyll"),
         )
     except Exception as e:
         raise HTTPException(404, f"Tile not available: {str(e)}")
