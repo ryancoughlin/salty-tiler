@@ -5,14 +5,16 @@ TiTiler app to serve SST data from GOES19 ABI sensor, chlorophyll, and other oce
 This application uses TiTiler to serve Cloud-Optimized GeoTIFF (COG) files
 containing sea surface temperature and chlorophyll data.
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from titiler.core.factory import TilerFactory, ColorMapFactory
 from titiler.core.errors import DEFAULT_STATUS_CODES, add_exception_handlers
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from typing import Dict, Tuple, Any, List
 import uvicorn
 import json
 import os
+from urllib.parse import urlencode, parse_qs, urlparse, urlunparse
 
 # Import TiTiler middleware for caching
 from titiler.core.middleware import CacheControlMiddleware, TotalTimeMiddleware
@@ -165,6 +167,42 @@ app.add_middleware(
 cache_control_settings = "public, max-age=21600"  # 6 hour cache for tiles
 app.add_middleware(CacheControlMiddleware, cachecontrol=cache_control_settings)
 app.add_middleware(TotalTimeMiddleware)
+
+# Temporary fix: Add bidx=1 to COG tile requests when missing
+@app.middleware("http")
+async def add_bidx_parameter(request: Request, call_next):
+    """
+    Temporary fix: Automatically append bidx=1 to COG tile requests when missing.
+    This fixes the "Source data must be 1 band" error without requiring client changes.
+    """
+    # Only process COG tile requests
+    if request.url.path.startswith("/cog/tiles/") and "colormap_name" in request.url.query:
+        # Parse the URL
+        parsed = urlparse(str(request.url))
+        query_params = parse_qs(parsed.query)
+        
+        # Check if bidx is missing
+        if "bidx" not in query_params:
+            # Add bidx=1 to the query parameters
+            query_params["bidx"] = ["1"]
+            
+            # Reconstruct the URL with the new parameter
+            new_query = urlencode(query_params, doseq=True)
+            new_url = urlunparse((
+                parsed.scheme,
+                parsed.netloc,
+                parsed.path,
+                parsed.params,
+                new_query,
+                parsed.fragment
+            ))
+            
+            # Redirect to the new URL with bidx=1
+            return RedirectResponse(url=new_url, status_code=307)
+    
+    # For all other requests, proceed normally
+    response = await call_next(request)
+    return response
 
 # Create a TilerFactory with the custom colormap and all standard endpoints
 cog = TilerFactory(
