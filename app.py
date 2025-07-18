@@ -168,42 +168,6 @@ cache_control_settings = "public, max-age=21600"  # 6 hour cache for tiles
 app.add_middleware(CacheControlMiddleware, cachecontrol=cache_control_settings)
 app.add_middleware(TotalTimeMiddleware)
 
-# Temporary fix: Add bidx=1 to COG tile requests when missing
-@app.middleware("http")
-async def add_bidx_parameter(request: Request, call_next):
-    """
-    Temporary fix: Automatically append bidx=1 to COG tile requests when missing.
-    This fixes the "Source data must be 1 band" error without requiring client changes.
-    """
-    # Only process COG tile requests
-    if request.url.path.startswith("/cog/tiles/") and "colormap_name" in request.url.query:
-        # Parse the URL
-        parsed = urlparse(str(request.url))
-        query_params = parse_qs(parsed.query)
-        
-        # Check if bidx is missing
-        if "bidx" not in query_params:
-            # Add bidx=1 to the query parameters
-            query_params["bidx"] = ["1"]
-            
-            # Reconstruct the URL with the new parameter
-            new_query = urlencode(query_params, doseq=True)
-            new_url = urlunparse((
-                parsed.scheme,
-                parsed.netloc,
-                parsed.path,
-                parsed.params,
-                new_query,
-                parsed.fragment
-            ))
-            
-            # Redirect to the new URL with bidx=1
-            return RedirectResponse(url=new_url, status_code=307)
-    
-    # For all other requests, proceed normally
-    response = await call_next(request)
-    return response
-
 # Create a TilerFactory with the custom colormap and all standard endpoints
 cog = TilerFactory(
     colormap_dependency=ColorMapParams,
