@@ -27,7 +27,10 @@ from routes.tiles import router as tiles_router
 from rio_tiler.colormap import cmap as default_cmap
 from titiler.core.dependencies import create_colormap_dependency
 
-
+# Custom dependency to automatically set bidx=1 when missing
+def auto_bidx_dependency(bidx: int = None) -> int:
+    """Automatically set bidx=1 if not specified for backward compatibility."""
+    return bidx if bidx is not None else int(os.getenv("DEFAULT_BAND", "1"))
 
 # Define custom SST color map based on user's high contrast palette
 # Convert the list of hex colors to a continuous colormap
@@ -174,6 +177,8 @@ cog = TilerFactory(
     add_preview=True,
     add_part=True,
     add_viewer=True,
+    # Add custom bidx dependency for backward compatibility
+    bidx_dependency=auto_bidx_dependency,
 )
 
 # Create a ColorMapFactory to expose colormap discovery endpoints
