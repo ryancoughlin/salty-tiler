@@ -32,6 +32,52 @@ def auto_bidx_dependency(bidx: int = None) -> int:
     """Automatically set bidx=1 if not specified for backward compatibility."""
     return bidx if bidx is not None else int(os.getenv("DEFAULT_BAND", "1"))
 
+# Create a custom dependency for TiTiler that handles bidx
+from titiler.core.dependencies import DefaultDependency
+from typing import Optional
+
+class BidxDependency(DefaultDependency):
+    """Custom dependency that defaults to bidx=1 for backward compatibility."""
+    
+    def __init__(self):
+        super().__init__()
+    
+    def __call__(self, bidx: Optional[int] = None) -> int:
+        return bidx if bidx is not None else 1
+
+# Create the bidx dependency
+bidx_dependency = BidxDependency()
+
+# Simple middleware to add bidx=1 to COG requests without redirects
+@app.middleware("http")
+async def add_bidx_middleware(request: Request, call_next):
+    """Add bidx=1 to COG tile requests without redirects."""
+    if request.url.path.startswith("/cog/tiles/") and "colormap_name" in request.url.query:
+        # Parse query parameters
+        parsed = urlparse(str(request.url))
+        query_params = parse_qs(parsed.query)
+        
+        # Add bidx=1 if not present
+        if "bidx" not in query_params:
+            query_params["bidx"] = ["1"]
+            
+            # Reconstruct URL
+            new_query = urlencode(query_params, doseq=True)
+            new_url = urlunparse((
+                parsed.scheme,
+                parsed.netloc,
+                parsed.path,
+                parsed.params,
+                new_query,
+                parsed.fragment
+            ))
+            
+            # Modify the request URL directly
+            request._url = new_url
+    
+    response = await call_next(request)
+    return response
+
 # Define custom SST color map based on user's high contrast palette
 # Convert the list of hex colors to a continuous colormap
 def hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
@@ -177,8 +223,6 @@ cog = TilerFactory(
     add_preview=True,
     add_part=True,
     add_viewer=True,
-    # Add custom bidx dependency for backward compatibility
-    bidx_dependency=auto_bidx_dependency,
 )
 
 # Create a ColorMapFactory to expose colormap discovery endpoints
