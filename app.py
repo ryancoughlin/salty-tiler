@@ -171,6 +171,77 @@ cache_control_settings = "public, max-age=21600"  # 6 hour cache for tiles
 app.add_middleware(CacheControlMiddleware, cachecontrol=cache_control_settings)
 app.add_middleware(TotalTimeMiddleware)
 
+# Middleware to handle HTTP COG access issues
+@app.middleware("http")
+async def handle_cog_http_issues(request: Request, call_next):
+    """Handle HTTP COG access issues by downloading files locally when needed."""
+    import tempfile
+    import requests
+    import os
+    
+    # Only intercept COG tile requests
+    if "/cog/tiles/" in request.url.path:
+        # Get the URL parameter
+        url_param = request.query_params.get("url")
+        if url_param and url_param.startswith("http"):
+            # Check if this is a known problematic URL pattern
+            if "data.saltyoffshore.com" in url_param:
+                # Create a local copy in temp directory
+                temp_dir = "/tmp/cog_cache"
+                os.makedirs(temp_dir, exist_ok=True)
+                
+                # Create a filename from the URL
+                filename = url_param.split("/")[-1]
+                local_path = os.path.join(temp_dir, filename)
+                
+                # Check if file already exists locally
+                if not os.path.exists(local_path):
+                    try:
+                        # Download the file
+                        response = requests.get(url_param, timeout=30)
+                        response.raise_for_status()
+                        
+                        with open(local_path, "wb") as f:
+                            f.write(response.content)
+                        
+                        print(f"[COG] Downloaded {url_param} to {local_path}")
+                    except Exception as e:
+                        print(f"[COG] Failed to download {url_param}: {e}")
+                        # Continue with original request
+                        return await call_next(request)
+                
+                # Replace the URL parameter with local path
+                new_query_params = dict(request.query_params)
+                new_query_params["url"] = f"file://{local_path}"
+                
+                # Reconstruct the request
+                new_query_string = "&".join([f"{k}={v}" for k, v in new_query_params.items()])
+                request.scope["query_string"] = new_query_string.encode()
+    
+    return await call_next(request)
+
+# Middleware to strip bidx parameter from COG tile requests
+@app.middleware("http")
+async def strip_bidx_parameter(request: Request, call_next):
+    """Strip bidx parameter from COG tile requests to handle iOS app's automatic bidx=1 addition."""
+    
+    # Only intercept COG tile requests
+    if "/cog/tiles/" in request.url.path:
+        # Check if bidx parameter exists
+        if "bidx" in request.query_params:
+            # Create new query params without bidx
+            new_query_params = dict(request.query_params)
+            removed_bidx = new_query_params.pop("bidx", None)
+            
+            if removed_bidx:
+                print(f"[BIDX] Removed bidx={removed_bidx} from request")
+                
+                # Reconstruct the request without bidx
+                new_query_string = "&".join([f"{k}={v}" for k, v in new_query_params.items()])
+                request.scope["query_string"] = new_query_string.encode()
+    
+    return await call_next(request)
+
 # Create a TilerFactory with the custom colormap and all standard endpoints
 cog = TilerFactory(
     colormap_dependency=ColorMapParams,
@@ -200,6 +271,135 @@ def health_check():
 
 # Add exception handlers
 add_exception_handlers(app, DEFAULT_STATUS_CODES)
+
+# Debug endpoint to check COG file format and bands
+@app.get("/debug/bands")
+async def debug_cog_bands(url: str):
+    """
+    Debug endpoint to check COG file format and band information.
+    Example: /debug/bands?url=https://data.saltyoffshore.com/ne_canyons/sst_composite/2025-07-19T050224Z_cog.tif
+    """
+    import subprocess
+    import tempfile
+    import requests
+    
+    try:
+        # Download a sample of the file to test
+        response = requests.get(url, headers={'Range': 'bytes=0-2048'}, timeout=10)
+        if response.status_code != 206:
+            return {"error": f"HTTP {response.status_code}: Cannot access file"}
+        
+        # Save to temp file for GDAL to test
+        with tempfile.NamedTemporaryFile(suffix='.tif', delete=False) as tmp_file:
+            tmp_file.write(response.content)
+            tmp_path = tmp_file.name
+        
+        # Test with gdalinfo to get band information
+        result = subprocess.run(
+            ["gdalinfo", tmp_path],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        # Clean up temp file
+        import os
+        os.unlink(tmp_path)
+        
+        if result.returncode == 0:
+            # Parse the output to extract band information
+            output = result.stdout
+            bands = []
+            current_band = None
+            
+            for line in output.split('\n'):
+                if line.strip().startswith('Band '):
+                    current_band = line.strip()
+                    bands.append(current_band)
+                elif current_band and line.strip().startswith('  '):
+                    bands.append(line.strip())
+            
+            return {
+                "url": url,
+                "status": "success",
+                "file_size": len(response.content),
+                "gdalinfo_output": output,
+                "bands": bands,
+                "band_count": len([b for b in bands if b.startswith('Band ')])
+            }
+        else:
+            return {
+                "url": url,
+                "status": "error",
+                "returncode": result.returncode,
+                "stderr": result.stderr,
+                "file_size": len(response.content)
+            }
+    except Exception as e:
+        return {
+            "url": url,
+            "status": "exception",
+            "error": str(e),
+            "type": type(e).__name__
+        }
+
+# Debug endpoint to test full file access
+@app.get("/debug/full")
+async def debug_full_file(url: str):
+    """
+    Debug endpoint to test full file access and HTTP headers.
+    Example: /debug/full?url=https://data.saltyoffshore.com/ne_canyons/sst_composite/2025-07-19T050224Z_cog.tif
+    """
+    import requests
+    import subprocess
+    import tempfile
+    
+    try:
+        # Test full file download
+        response = requests.get(url, timeout=30)
+        if response.status_code != 200:
+            return {"error": f"HTTP {response.status_code}: Cannot download full file"}
+        
+        # Save full file to temp
+        with tempfile.NamedTemporaryFile(suffix='.tif', delete=False) as tmp_file:
+            tmp_file.write(response.content)
+            tmp_path = tmp_file.name
+        
+        # Test with gdalinfo on full file
+        result = subprocess.run(
+            ["gdalinfo", tmp_path],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        # Clean up temp file
+        import os
+        os.unlink(tmp_path)
+        
+        if result.returncode == 0:
+            return {
+                "url": url,
+                "status": "success",
+                "file_size": len(response.content),
+                "headers": dict(response.headers),
+                "gdalinfo_output": result.stdout[:500]  # First 500 chars
+            }
+        else:
+            return {
+                "url": url,
+                "status": "gdal_error",
+                "returncode": result.returncode,
+                "stderr": result.stderr,
+                "file_size": len(response.content)
+            }
+    except Exception as e:
+        return {
+            "url": url,
+            "status": "exception",
+            "error": str(e),
+            "type": type(e).__name__
+        }
 
 if __name__ == "__main__":
     host = os.getenv("TILER_HOST", "0.0.0.0")
