@@ -37,6 +37,10 @@ deploy_with_compose() {
     
     # Prune any dangling containers
     docker container prune -f || true
+
+    # Clear the COG cache directory
+    echo "🧹 Clearing /tmp/cog_cache on host..."
+    rm -rf /tmp/cog_cache
     
     # Build and start new containers
     echo "🚀 Building and starting containers..."
