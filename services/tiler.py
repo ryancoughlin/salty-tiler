@@ -1,16 +1,12 @@
 from typing import Any, Dict, Optional
 from titiler.core.factory import TilerFactory
 from titiler.core.resources.enums import ImageType
-from functools import lru_cache
 import json
 import os
 import numpy as np
 
 # TilerFactory instance with bilinear resampling
 cog_tiler = TilerFactory()
-
-# Simple set to track seen cache keys for hit/miss logging (dev only)
-_seen_cache_keys = set()
 
 def _symlog_transform(value: float, linthresh: float = 0.3, base: float = 2.0) -> float:
     """
@@ -49,35 +45,6 @@ def _serialize_colormap(colormap: Any) -> str:
     # Sort keys for deterministic output
     return json.dumps(colormap, sort_keys=True) if colormap else "null"
 
-@lru_cache(maxsize=int(os.getenv("TILE_CACHE_SIZE", "2048")))
-def _render_tile_cached(
-    path: str,
-    z: int,
-    x: int,
-    y: int,
-    min_value: float,
-    max_value: float,
-    colormap_serialized: str,
-    colormap_name: Optional[str] = None,
-    colormap_bins: int = 256,
-) -> bytes:
-    kwargs = {
-        "path": path,
-        "tile_format": ImageType.png,
-        "scale_range": [min_value, max_value],
-        "colormap_bins": colormap_bins,
-        "resampling_method": "bilinear",
-        "z": z, "x": x, "y": y
-    }
-    
-    # Either use a named colormap or a custom colormap dictionary
-    if colormap_name:
-        kwargs["colormap_name"] = colormap_name
-    elif colormap_serialized != "null":
-        kwargs["colormap"] = json.loads(colormap_serialized)
-        
-    return cog_tiler.render(**kwargs)
-
 def render_tile(
     path: str,
     z: int,
@@ -92,7 +59,7 @@ def render_tile(
 ) -> bytes:
     """
     Render a PNG tile from a COG using TiTiler with bilinear resampling and a colormap.
-    Returns PNG bytes. Uses in-memory LRU cache for speed.
+    Returns PNG bytes. Direct rendering without caching for reliability.
     Supports both local paths and external URLs.
     
     Args:
@@ -108,16 +75,24 @@ def render_tile(
     if use_log_scale:
         min_value, max_value = _apply_chlorophyll_scaling(min_value, max_value)
     
-    colormap_serialized = _serialize_colormap(colormap)
-    key = (path, z, x, y, min_value, max_value, colormap_serialized, colormap_name, colormap_bins)
+    kwargs = {
+        "path": path,
+        "tile_format": ImageType.png,
+        "scale_range": [min_value, max_value],
+        "colormap_bins": colormap_bins,
+        "resampling_method": "bilinear",
+        "z": z, "x": x, "y": y
+    }
     
-    # Log cache status
-    cache_status = "HIT" if key in _seen_cache_keys else "MISS"
+    # Either use a named colormap or a custom colormap dictionary
+    if colormap_name:
+        kwargs["colormap_name"] = colormap_name
+    elif colormap:
+        kwargs["colormap"] = colormap
+        
+    # Log tile request for debugging
     url_type = "URL" if path.startswith("http") else "LOCAL"
     scale_type = "LOG" if use_log_scale else "LINEAR"
-    print(f"[CACHE] {cache_status}: {url_type} {path} z={z} x={x} y={y} min={min_value} max={max_value} scale={scale_type}")
+    print(f"[TILE] {url_type} {path} z={z} x={x} y={y} min={min_value} max={max_value} scale={scale_type}")
     
-    if key not in _seen_cache_keys:
-        _seen_cache_keys.add(key)
-    
-    return _render_tile_cached(*key) 
+    return cog_tiler.render(**kwargs) 

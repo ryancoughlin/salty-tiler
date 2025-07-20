@@ -15,11 +15,9 @@ import uvicorn
 import json
 import os
 from urllib.parse import urlencode, parse_qs, urlparse, urlunparse
-import aiocache
-from aiocache import cached
 
-# Import TiTiler middleware for caching
-from titiler.core.middleware import CacheControlMiddleware, TotalTimeMiddleware
+# Import TiTiler middleware for timing
+from titiler.core.middleware import TotalTimeMiddleware
 
 # Import routes
 from routes.metadata import router as metadata_router
@@ -165,12 +163,7 @@ app.add_middleware(
     allow_headers=cors_headers,
 )
 
-# Add TiTiler middleware for caching
-# For ocean data timeline scrubbing, we want tiles to be cached for a reasonable duration
-# but not too long since data updates regularly
-# 1 hour provides good balance between performance and data freshness for timeline scrubbing
-cache_control_settings = "public, max-age=3600"  # 1 hour cache for tiles
-app.add_middleware(CacheControlMiddleware, cachecontrol=cache_control_settings)
+# Add TiTiler middleware for timing only (no caching)
 app.add_middleware(TotalTimeMiddleware)
 
 # Middleware to handle HTTP COG access issues
@@ -273,6 +266,25 @@ app.include_router(tiles_router)
 def health_check():
     """Health check endpoint for load balancer and Docker."""
     return {"status": "healthy", "service": "salty-tiler"}
+
+# Simple COG info endpoint (no caching)
+@app.get("/cog/info")
+async def cog_info(url: str):
+    """Get COG information."""
+    from rio_tiler.io import COGReader
+    
+    try:
+        with COGReader(url) as cog:
+            return {
+                "bounds": cog.bounds,
+                "center": cog.center,
+                "minzoom": cog.minzoom,
+                "maxzoom": cog.maxzoom,
+                "band_names": cog.band_names,
+                "dtype": str(cog.dataset.dtypes[0])
+            }
+    except Exception as e:
+        return {"error": str(e)}
 
 # Add exception handlers
 add_exception_handlers(app, DEFAULT_STATUS_CODES)
