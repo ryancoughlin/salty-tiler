@@ -166,8 +166,8 @@ app.add_middleware(
 # Add TiTiler middleware for caching
 # For ocean data timeline scrubbing, we want tiles to be cached for a reasonable duration
 # but not too long since data updates regularly
-# 6 hours provides good balance between performance and data freshness for timeline scrubbing
-cache_control_settings = "public, max-age=21600"  # 6 hour cache for tiles
+# 1 hour provides good balance between performance and data freshness for timeline scrubbing
+cache_control_settings = "public, max-age=3600"  # 1 hour cache for tiles
 app.add_middleware(CacheControlMiddleware, cachecontrol=cache_control_settings)
 app.add_middleware(TotalTimeMiddleware)
 
@@ -178,6 +178,7 @@ async def handle_cog_http_issues(request: Request, call_next):
     import tempfile
     import requests
     import os
+    import hashlib
     
     # Only intercept COG tile requests
     if "/cog/tiles/" in request.url.path:
@@ -190,8 +191,10 @@ async def handle_cog_http_issues(request: Request, call_next):
                 temp_dir = "/tmp/cog_cache"
                 os.makedirs(temp_dir, exist_ok=True)
                 
-                # Create a filename from the URL
-                filename = url_param.split("/")[-1]
+                # Create a unique filename based on the full URL path to avoid region conflicts
+                # Use hash of the URL to create unique cache key per region/dataset
+                url_hash = hashlib.md5(url_param.encode()).hexdigest()
+                filename = f"{url_hash}.tif"
                 local_path = os.path.join(temp_dir, filename)
                 
                 # Check if file already exists locally
