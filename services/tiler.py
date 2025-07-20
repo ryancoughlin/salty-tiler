@@ -1,6 +1,7 @@
 from typing import Any, Dict, Optional
 from titiler.core.factory import TilerFactory
 from titiler.core.resources.enums import ImageType
+from functools import lru_cache
 import json
 import os
 import numpy as np
@@ -45,6 +46,7 @@ def _serialize_colormap(colormap: Any) -> str:
     # Sort keys for deterministic output
     return json.dumps(colormap, sort_keys=True) if colormap else "null"
 
+@lru_cache(maxsize=512)  # Smaller cache size for stability
 def render_tile(
     path: str,
     z: int,
@@ -52,21 +54,19 @@ def render_tile(
     y: int,
     min_value: float,
     max_value: float,
-    colormap: Any = None,
     colormap_name: Optional[str] = None,
     colormap_bins: int = 256,
     use_log_scale: bool = False,
 ) -> bytes:
     """
     Render a PNG tile from a COG using TiTiler with bilinear resampling and a colormap.
-    Returns PNG bytes. Direct rendering without caching for reliability.
+    Returns PNG bytes. Uses small LRU cache for performance.
     Supports both local paths and external URLs.
     
     Args:
         path: Path or URL to the COG file
         z, x, y: Tile coordinates
         min_value, max_value: Scale range for colormap
-        colormap: Custom colormap dict
         colormap_name: Named colormap registered in app
         colormap_bins: Number of colormap bins
         use_log_scale: Apply logarithmic scaling for chlorophyll data
@@ -84,15 +84,8 @@ def render_tile(
         "z": z, "x": x, "y": y
     }
     
-    # Either use a named colormap or a custom colormap dictionary
+    # Use named colormap
     if colormap_name:
         kwargs["colormap_name"] = colormap_name
-    elif colormap:
-        kwargs["colormap"] = colormap
         
-    # Log tile request for debugging
-    url_type = "URL" if path.startswith("http") else "LOCAL"
-    scale_type = "LOG" if use_log_scale else "LINEAR"
-    print(f"[TILE] {url_type} {path} z={z} x={x} y={y} min={min_value} max={max_value} scale={scale_type}")
-    
     return cog_tiler.render(**kwargs) 

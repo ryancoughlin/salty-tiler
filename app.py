@@ -10,14 +10,13 @@ from titiler.core.factory import TilerFactory, ColorMapFactory
 from titiler.core.errors import DEFAULT_STATUS_CODES, add_exception_handlers
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
-from typing import Dict, Tuple, Any, List
+from typing import Dict, Tuple, Any
 import uvicorn
 import json
 import os
 from urllib.parse import urlencode, parse_qs, urlparse, urlunparse
 
-# Import TiTiler middleware for timing
-from titiler.core.middleware import TotalTimeMiddleware
+# No heavy middleware imports
 
 # Import routes
 from routes.metadata import router as metadata_router
@@ -83,49 +82,13 @@ SALINITY_COLORS = [
     '#f9f287'
 ]
 
-# Create a fully interpolated colormap with 256 colors
-def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> Dict[int, Tuple[int, int, int, int]]:
-    """Create a continuous colormap by interpolating between colors in the list."""
-    # Convert hex colors to RGB
-    rgb_colors = [hex_to_rgb(color) for color in color_list]
-    
-    # Number of color segments
-    num_segments = len(rgb_colors) - 1
-    
-    # Calculate how many colors to generate per segment
-    colors_per_segment = [num_colors // num_segments] * num_segments
-    # Distribute any remainder
-    remainder = num_colors % num_segments
-    for i in range(remainder):
-        colors_per_segment[i] += 1
-    
-    # Generate the continuous colormap
-    continuous_map = {}
-    color_index = 0
-    
-    for segment in range(num_segments):
-        r1, g1, b1 = rgb_colors[segment]
-        r2, g2, b2 = rgb_colors[segment + 1]
-        
-        for i in range(colors_per_segment[segment]):
-            # Calculate interpolation factor
-            t = i / (colors_per_segment[segment] - 1) if colors_per_segment[segment] > 1 else 0
-            
-            # Linear interpolation between colors
-            r = int(r1 * (1 - t) + r2 * t)
-            g = int(g1 * (1 - t) + g2 * t)
-            b = int(b1 * (1 - t) + b2 * t)
-            
-            # Add to colormap with full opacity
-            continuous_map[color_index] = (r, g, b, 255)
-            color_index += 1
-    
-    return continuous_map
-
-# Generate the continuous colormaps
-sst_colormap = create_continuous_colormap(SST_COLORS_HIGH_CONTRAST, 256)
-chlorophyll_colormap = create_continuous_colormap(CHLOROPHYLL_COLORS, 256)
-salinity_colormap = create_continuous_colormap(SALINITY_COLORS, 256)
+# Create simple colormaps (no heavy interpolation)
+sst_colormap = {i: hex_to_rgb(SST_COLORS_HIGH_CONTRAST[i % len(SST_COLORS_HIGH_CONTRAST)]) + (255,) 
+                for i in range(256)}
+chlorophyll_colormap = {i: hex_to_rgb(CHLOROPHYLL_COLORS[i % len(CHLOROPHYLL_COLORS)]) + (255,) 
+                       for i in range(256)}
+salinity_colormap = {i: hex_to_rgb(SALINITY_COLORS[i % len(SALINITY_COLORS)]) + (255,) 
+                    for i in range(256)}
 
 # Load palette from JSON
 with open("sst_colormap.json") as f:
@@ -163,8 +126,7 @@ app.add_middleware(
     allow_headers=cors_headers,
 )
 
-# Add TiTiler middleware for timing only (no caching)
-app.add_middleware(TotalTimeMiddleware)
+# No heavy middleware - keep it simple for performance
 
 # Middleware to handle HTTP COG access issues
 # @app.middleware("http")
