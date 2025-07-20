@@ -15,6 +15,8 @@ import uvicorn
 import json
 import os
 from urllib.parse import urlencode, parse_qs, urlparse, urlunparse
+import aiocache
+from aiocache import cached
 
 # Import TiTiler middleware for caching
 from titiler.core.middleware import CacheControlMiddleware, TotalTimeMiddleware
@@ -172,56 +174,56 @@ app.add_middleware(CacheControlMiddleware, cachecontrol=cache_control_settings)
 app.add_middleware(TotalTimeMiddleware)
 
 # Middleware to handle HTTP COG access issues
-@app.middleware("http")
-async def handle_cog_http_issues(request: Request, call_next):
-    """Handle HTTP COG access issues by downloading files locally when needed."""
-    import tempfile
-    import requests
-    import os
-    import hashlib
-    
-    # Only intercept COG tile requests
-    if "/cog/tiles/" in request.url.path:
-        # Get the URL parameter
-        url_param = request.query_params.get("url")
-        if url_param and url_param.startswith("http"):
-            # Check if this is a known problematic URL pattern
-            if "data.saltyoffshore.com" in url_param:
-                # Create a local copy in temp directory
-                temp_dir = "/tmp/cog_cache"
-                os.makedirs(temp_dir, exist_ok=True)
-                
-                # Create a unique filename based on the full URL path to avoid region conflicts
-                # Use hash of the URL to create unique cache key per region/dataset
-                url_hash = hashlib.md5(url_param.encode()).hexdigest()
-                filename = f"{url_hash}.tif"
-                local_path = os.path.join(temp_dir, filename)
-                
-                # Check if file already exists locally
-                if not os.path.exists(local_path):
-                    try:
-                        # Download the file
-                        response = requests.get(url_param, timeout=30)
-                        response.raise_for_status()
-                        
-                        with open(local_path, "wb") as f:
-                            f.write(response.content)
-                        
-                        print(f"[COG] Downloaded {url_param} to {local_path}")
-                    except Exception as e:
-                        print(f"[COG] Failed to download {url_param}: {e}")
-                        # Continue with original request
-                        return await call_next(request)
-                
-                # Replace the URL parameter with local path
-                new_query_params = dict(request.query_params)
-                new_query_params["url"] = f"file://{local_path}"
-                
-                # Reconstruct the request
-                new_query_string = "&".join([f"{k}={v}" for k, v in new_query_params.items()])
-                request.scope["query_string"] = new_query_string.encode()
-    
-    return await call_next(request)
+# @app.middleware("http")
+# async def handle_cog_http_issues(request: Request, call_next):
+#     """Handle HTTP COG access issues by downloading files locally when needed."""
+#     import tempfile
+#     import requests
+#     import os
+#     import hashlib
+#     
+#     # Only intercept COG tile requests
+#     if "/cog/tiles/" in request.url.path:
+#         # Get the URL parameter
+#         url_param = request.query_params.get("url")
+#         if url_param and url_param.startswith("http"):
+#             # Check if this is a known problematic URL pattern
+#             if "data.saltyoffshore.com" in url_param:
+#                 # Create a local copy in temp directory
+#                 temp_dir = "/tmp/cog_cache"
+#                 os.makedirs(temp_dir, exist_ok=True)
+#                 
+#                 # Create a unique filename based on the full URL path to avoid region conflicts
+#                 # Use hash of the URL to create unique cache key per region/dataset
+#                 url_hash = hashlib.md5(url_param.encode()).hexdigest()
+#                 filename = f"{url_hash}.tif"
+#                 local_path = os.path.join(temp_dir, filename)
+#                 
+#                 # Check if file already exists locally
+#                 if not os.path.exists(local_path):
+#                     try:
+#                         # Download the file
+#                         response = requests.get(url_param, timeout=30)
+#                         response.raise_for_status()
+#                         
+#                         with open(local_path, "wb") as f:
+#                             f.write(response.content)
+#                         
+#                         print(f"[COG] Downloaded {url_param} to {local_path}")
+#                     except Exception as e:
+#                         print(f"[COG] Failed to download {url_param}: {e}")
+#                         # Continue with original request
+#                         return await call_next(request)
+#                 
+#                 # Replace the URL parameter with local path
+#                 new_query_params = dict(request.query_params)
+#                 new_query_params["url"] = f"file://{local_path}"
+#                 
+#                 # Reconstruct the request
+#                 new_query_string = "&".join([f"{k}={v}" for k, v in new_query_params.items()])
+#                 request.scope["query_string"] = new_query_string.encode()
+#     
+#     return await call_next(request)
 
 # Middleware to strip bidx parameter from COG tile requests
 @app.middleware("http")
