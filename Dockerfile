@@ -21,20 +21,20 @@ ENV CPLUS_INCLUDE_PATH=/usr/include/gdal
 ENV C_INCLUDE_PATH=/usr/include/gdal
 ENV GDAL_DATA=/usr/share/gdal
 
-# Configure GDAL for better HTTP handling and concurrent requests
+# Configure GDAL for better HTTP handling - increase timeouts for production
 ENV GDAL_HTTP_VERSION=2
 ENV GDAL_HTTP_USERAGENT="SaltyTiler/1.0"
-ENV GDAL_HTTP_MAX_RETRY=3
-ENV GDAL_HTTP_RETRY_DELAY=1
-ENV GDAL_HTTP_TIMEOUT=30
+ENV GDAL_HTTP_MAX_RETRY=5
+ENV GDAL_HTTP_RETRY_DELAY=2
+ENV GDAL_HTTP_TIMEOUT=60
 ENV GDAL_HTTP_PROXY=""
 ENV GDAL_HTTP_PROXYUSERPWD=""
 ENV GDAL_HTTP_UNSAFESSL=1
 
-# Enable connection pooling and concurrent access
-ENV GDAL_HTTP_MAX_CONCURRENT=10
-ENV GDAL_HTTP_CONNECTION_TIMEOUT=10
-ENV GDAL_HTTP_READ_TIMEOUT=30
+# Enable connection pooling and concurrent access with higher limits
+ENV GDAL_HTTP_MAX_CONCURRENT=20
+ENV GDAL_HTTP_CONNECTION_TIMEOUT=30
+ENV GDAL_HTTP_READ_TIMEOUT=60
 
 # Prevent file corruption and ensure complete downloads
 ENV GDAL_HTTP_HEADERS=""
