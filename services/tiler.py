@@ -5,12 +5,20 @@ from functools import lru_cache
 import json
 import os
 import numpy as np
+import asyncio
+import time
+from collections import defaultdict
 
 # TilerFactory instance with bilinear resampling
 cog_tiler = TilerFactory()
 
 # Simple set to track seen cache keys for hit/miss logging (dev only)
 _seen_cache_keys = set()
+
+# Request throttling for concurrent COG access
+_cog_locks = defaultdict(asyncio.Lock)
+_last_request_time = defaultdict(float)
+_min_request_interval = 0.1  # 100ms between requests to same COG
 
 def _symlog_transform(value: float, linthresh: float = 0.3, base: float = 2.0) -> float:
     """
@@ -48,6 +56,20 @@ def _serialize_colormap(colormap: Any) -> str:
     # Assume colormap is a dict[int, tuple[int, int, int, int]]
     # Sort keys for deterministic output
     return json.dumps(colormap, sort_keys=True) if colormap else "null"
+
+def _throttle_cog_request(path: str):
+    """
+    Throttle requests to the same COG file to prevent GDAL HTTP driver issues.
+    """
+    if path.startswith(('http://', 'https://')):
+        current_time = time.time()
+        last_time = _last_request_time[path]
+        
+        if current_time - last_time < _min_request_interval:
+            sleep_time = _min_request_interval - (current_time - last_time)
+            time.sleep(sleep_time)
+        
+        _last_request_time[path] = time.time()
 
 @lru_cache(maxsize=int(os.getenv("TILE_CACHE_SIZE", "2048")))
 def _render_tile_cached(
@@ -107,6 +129,9 @@ def render_tile(
     # Apply logarithmic scaling for chlorophyll data to match visualizer
     if use_log_scale:
         min_value, max_value = _apply_chlorophyll_scaling(min_value, max_value)
+    
+    # Throttle requests to prevent GDAL HTTP driver issues
+    _throttle_cog_request(path)
     
     colormap_serialized = _serialize_colormap(colormap)
     key = (path, z, x, y, min_value, max_value, colormap_serialized, colormap_name, colormap_bins)
