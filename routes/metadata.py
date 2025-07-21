@@ -2,10 +2,11 @@ from fastapi import APIRouter, HTTPException
 
 router = APIRouter()
 
-# Dataset default ranges (extend as needed)
+# Dataset default ranges (Fahrenheit for SST, original units for chlorophyll, PSU for salinity)
 DATASET_RANGES = {
-    "sst": {"min": -2.0, "max": 35.0},
+    "sst": {"min": 32.0, "max": 95.0},  # Fahrenheit range
     "chlorophyll": {"min": 0.01, "max": 30.0},
+    "salinity": {"min": 28.0, "max": 37.5},  # PSU range
 }
 
 @router.get("/metadata/{dataset}/range")
