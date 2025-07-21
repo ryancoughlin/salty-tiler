@@ -8,6 +8,11 @@ import numpy as np
 import asyncio
 import time
 from collections import defaultdict
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # TilerFactory instance with bilinear resampling
 cog_tiler = TilerFactory()
@@ -19,6 +24,9 @@ _seen_cache_keys = set()
 _cog_locks = defaultdict(asyncio.Lock)
 _last_request_time = defaultdict(float)
 _min_request_interval = 0.1  # 100ms between requests to same COG
+
+# Track failed requests to avoid retrying corrupted files
+_failed_requests = set()
 
 def _symlog_transform(value: float, linthresh: float = 0.3, base: float = 2.0) -> float:
     """
@@ -70,6 +78,16 @@ def _throttle_cog_request(path: str):
             time.sleep(sleep_time)
         
         _last_request_time[path] = time.time()
+
+def _clear_gdal_cache_for_path(path: str):
+    """
+    Clear GDAL's internal cache for a specific path to force fresh download.
+    This helps when files are corrupted or incomplete.
+    """
+    if path.startswith(('http://', 'https://')):
+        # Clear the failed requests cache for this path
+        _failed_requests.discard(path)
+        logger.info(f"Cleared cache for corrupted file: {path}")
 
 @lru_cache(maxsize=int(os.getenv("TILE_CACHE_SIZE", "2048")))
 def _render_tile_cached(
@@ -140,9 +158,36 @@ def render_tile(
     cache_status = "HIT" if key in _seen_cache_keys else "MISS"
     url_type = "URL" if path.startswith("http") else "LOCAL"
     scale_type = "LOG" if use_log_scale else "LINEAR"
-    print(f"[CACHE] {cache_status}: {url_type} {path} z={z} x={x} y={y} min={min_value} max={max_value} scale={scale_type}")
+    logger.info(f"[CACHE] {cache_status}: {url_type} {path} z={z} x={x} y={y} min={min_value} max={max_value} scale={scale_type}")
     
     if key not in _seen_cache_keys:
         _seen_cache_keys.add(key)
     
-    return _render_tile_cached(*key) 
+    # Try to render the tile with retry logic for corrupted files
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            return _render_tile_cached(*key)
+        except Exception as e:
+            error_msg = str(e).lower()
+            
+            # Check if it's a file format or corruption error
+            if any(keyword in error_msg for keyword in ['not recognized', 'file format', 'corrupted', 'incomplete']):
+                logger.warning(f"Attempt {attempt + 1}/{max_retries}: Corrupted file detected for {path}: {e}")
+                
+                if attempt < max_retries - 1:
+                    # Clear GDAL cache and retry
+                    _clear_gdal_cache_for_path(path)
+                    time.sleep(0.5)  # Wait before retry
+                    continue
+                else:
+                    # Mark as failed and raise
+                    _failed_requests.add(path)
+                    logger.error(f"Failed to render tile after {max_retries} attempts for {path}")
+                    raise
+            else:
+                # Not a corruption error, just raise
+                raise
+    
+    # This should never be reached, but just in case
+    raise Exception(f"Failed to render tile for {path}") 
