@@ -9,6 +9,7 @@ DATASET_RANGES = {
     "sst": {"min": 32.0, "max": 95.0},  # Fahrenheit range
     "chlorophyll": {"min": 0.01, "max": 8.0},  # Data is capped at 8 mg/m³
     "salinity": {"min": 28.0, "max": 37.5},  # PSU range
+    "water_clarity": {"min": 0.02, "max": 6.0},  # Kd₄₉₀ m⁻¹, capped at 6.0
 }
 
 def validate_cog_url(url: str) -> bool:
@@ -51,6 +52,8 @@ def tile_from_external_cog(
         dataset_type = "chlorophyll"
     elif "salinity" in dataset.lower() or "salt" in dataset.lower():
         dataset_type = "salinity"
+    elif "clarity" in dataset.lower() or "k490" in dataset.lower():
+        dataset_type = "water_clarity"
     else:
         dataset_type = "sst"
     
@@ -71,11 +74,13 @@ def tile_from_external_cog(
             min_value=min_val, max_value=max_val,
             colormap_name={
                 "sst": "sst_high_contrast",
-                "chlorophyll": "chlorophyll", 
-                "salinity": "salinity"
+                "chlorophyll": "chlorophyll",
+                "salinity": "salinity",
+                "water_clarity": "water_clarity"
             }.get(dataset_type, "sst_high_contrast"),
             colormap_bins=256,
-            use_log_scale=(dataset_type == "chlorophyll"),
+            use_log_scale=(dataset_type == "water_clarity"),
+            dataset_type=dataset_type,
         )
     except Exception as e:
         raise HTTPException(404, f"Tile not available: {str(e)}")
@@ -126,10 +131,12 @@ def tile_from_url(
             colormap_name={
                 "sst": "sst_high_contrast",
                 "chlorophyll": "chlorophyll", 
-                "salinity": "salinity"
+                "salinity": "salinity",
+                "water_clarity": "water_clarity"
             }.get(dataset, "sst_high_contrast"),
             colormap_bins=256,
-            use_log_scale=(dataset == "chlorophyll"),
+            use_log_scale=(dataset == "water_clarity"),
+            dataset_type=dataset,
         )
     except Exception as e:
         raise HTTPException(404, f"Tile not available: {str(e)}")
@@ -171,6 +178,8 @@ def cog_tile_compatible(
         dataset_type = "chlorophyll"
     elif colormap_name == "salinity":
         dataset_type = "salinity"
+    elif colormap_name == "water_clarity":
+        dataset_type = "water_clarity"
     else:
         dataset_type = "sst"
     
@@ -186,7 +195,8 @@ def cog_tile_compatible(
             min_value=min_val, max_value=max_val,
             colormap_name=colormap_name,
             colormap_bins=256,
-            use_log_scale=(dataset_type == "chlorophyll"),
+            use_log_scale=(dataset_type == "water_clarity"),
+            dataset_type=dataset_type,
         )
     except Exception as e:
         raise HTTPException(404, f"Tile not available: {str(e)}")

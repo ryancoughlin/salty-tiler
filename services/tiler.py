@@ -49,6 +49,22 @@ def _apply_chlorophyll_scaling(min_val: float, max_val: float) -> tuple[float, f
     
     return transformed_min, transformed_max
 
+def _apply_water_clarity_scaling(min_val: float, max_val: float) -> tuple[float, float]:
+    """
+    Apply symlog scaling for water clarity (Kd₄₉₀) data.
+    
+    Based on standard clarity bands:
+    - Linear scaling: 0.02-0.25 m⁻¹ (ultra-blue to clear water)  
+    - Log scaling: 0.25-6.0 m⁻¹ (slight haze to opaque)
+    
+    vmin=0.02, vmax=6.0, linthresh=0.25, base=2
+    """
+    linthresh = 0.25  # Transition point from clear to hazy water
+    base = 2.0
+    transformed_min = _symlog_transform(min_val, linthresh=linthresh, base=base)
+    transformed_max = _symlog_transform(max_val, linthresh=linthresh, base=base)
+    return transformed_min, transformed_max
+
 def _serialize_colormap(colormap: Any) -> str:
     """Serialize colormap dict to a JSON string for hashing."""
     # Assume colormap is a dict[int, tuple[int, int, int, int]]
@@ -109,6 +125,7 @@ def render_tile(
     colormap_name: Optional[str] = None,
     colormap_bins: int = 256,
     use_log_scale: bool = False,
+    dataset_type: Optional[str] = None,
 ) -> bytes:
     """
     Render a PNG tile from a COG using TiTiler with bilinear resampling and a colormap.
@@ -122,26 +139,20 @@ def render_tile(
         colormap: Custom colormap dict
         colormap_name: Named colormap registered in app
         colormap_bins: Number of colormap bins
-        use_log_scale: Apply logarithmic scaling for chlorophyll data (currently disabled)
+        use_log_scale: Apply logarithmic scaling for water clarity data only
+        dataset_type: Used to distinguish dataset types for log scaling
     """
-    # Note: Log scaling transformation disabled as it doesn't work correctly with TiTiler
-    # The chlorophyll colormap should be designed to handle the data range appropriately
-    # if use_log_scale:
-    #     min_value, max_value = _apply_chlorophyll_scaling(min_value, max_value)
+    # Only apply log scaling for water clarity - chlorophyll uses linear scaling
+    if use_log_scale and dataset_type == "water_clarity":
+        min_value, max_value = _apply_water_clarity_scaling(min_value, max_value)
     
-    # Light throttling to prevent overwhelming GDAL during timeline scrubbing
     _throttle_cog_request(path)
-    
     colormap_serialized = _serialize_colormap(colormap)
     key = (path, z, x, y, min_value, max_value, colormap_serialized, colormap_name, colormap_bins)
-    
-    # Log cache status
     cache_status = "HIT" if key in _seen_cache_keys else "MISS"
     url_type = "URL" if path.startswith("http") else "LOCAL"
-    scale_type = "LOG" if use_log_scale else "LINEAR"
+    scale_type = "LOG" if (use_log_scale and dataset_type == "water_clarity") else "LINEAR"
     print(f"[CACHE] {cache_status}: {url_type} {path} z={z} x={x} y={y} min={min_value} max={max_value} scale={scale_type}")
-    
     if key not in _seen_cache_keys:
         _seen_cache_keys.add(key)
-    
     return _render_tile_cached(*key) 
