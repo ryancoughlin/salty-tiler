@@ -5,7 +5,7 @@ router = APIRouter()
 # Dataset default ranges (Fahrenheit for SST, original units for chlorophyll, PSU for salinity)
 DATASET_RANGES = {
     "sst": {"min": 32.0, "max": 95.0},  # Fahrenheit range
-    "chlorophyll": {"min": 0.01, "max": 30.0},
+    "chlorophyll": {"min": 0.01, "max": 20.0},  # Match Python app's SymLogNorm range
     "salinity": {"min": 28.0, "max": 37.5},  # PSU range
 }
 

@@ -122,11 +122,12 @@ def render_tile(
         colormap: Custom colormap dict
         colormap_name: Named colormap registered in app
         colormap_bins: Number of colormap bins
-        use_log_scale: Apply logarithmic scaling for chlorophyll data
+        use_log_scale: Apply logarithmic scaling for chlorophyll data (currently disabled)
     """
-    # Apply logarithmic scaling for chlorophyll data to match visualizer
-    if use_log_scale:
-        min_value, max_value = _apply_chlorophyll_scaling(min_value, max_value)
+    # Note: Log scaling transformation disabled as it doesn't work correctly with TiTiler
+    # The chlorophyll colormap should be designed to handle the data range appropriately
+    # if use_log_scale:
+    #     min_value, max_value = _apply_chlorophyll_scaling(min_value, max_value)
     
     # Light throttling to prevent overwhelming GDAL during timeline scrubbing
     _throttle_cog_request(path)
