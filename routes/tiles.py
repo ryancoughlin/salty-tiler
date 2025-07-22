@@ -16,10 +16,10 @@ class DatasetStyle:
 # Dataset configurations using TiTiler native log expressions
 DATASET_STYLES = {
     "chlorophyll": DatasetStyle(
-        # Match SymLogNorm: linear below 0.3, log2 above 0.3 (base=2)
-        expression="(b1 <= 0.3) ? b1 : (0.3 + log2(b1/0.3))",
-        rescale_min=0.01,    # Linear range: 0.01-0.3
-        rescale_max=3.5,     # Log range: 0.3-8.0 → 0.3-3.5
+        # Simple natural logarithm scaling: ln(value) - ln(0.01) / ln(8.0) - ln(0.01)
+        expression="log(b1)",
+        rescale_min=-4.6,    # ln(0.01) = -4.605
+        rescale_max=2.08,    # ln(8.0) = 2.079
         default_colormap="chlorophyll"
     ),
     "water_clarity": DatasetStyle(
