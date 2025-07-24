@@ -34,19 +34,12 @@ SST_COLORS_HIGH_CONTRAST = [
 
 # Chlorophyll color scale
 CHLOROPHYLL_COLORS = [
-    "#0C0D6C", "#1A1A83", "#28289A", "#3535B1", "#4343C8",
-    "#5050DF", "#5D5DF6", "#7070FF", "#8282FF", "#9494FF",
-    
-    "#2A9A8F", "#31A594", "#38B099", "#3FBB9E", "#46C6A3",
-    "#4ECFAA", "#56D8B1", "#5EE1B8", "#66EABF", "#6EF3C6",
-    
-    "#76F9CD", "#88FAC5", "#9AFABD", "#ACFAB5", "#BFFA9D",
-    "#D1FA95", "#E3FA8D", "#F5FA85", "#FAFD6D", "#FAED65",
-    
-    "#FADD5D", "#FAD455", "#FACA4D", "#FAC045", "#FAB73D",
-    "#FAAD35", "#FAA32D", "#FA9925", "#FA8F1D", "#FA7A00"
+  "#2b005a", "#4b0099", "#6d00d8",        # 0.03–0.10 (purple ramp)
+  "#3535B1", "#5050DF", "#7070FF",        # 0.10–0.30 (blue ramp)
+  "#2A9A8F", "#4ECFAA", "#76F9CD",        # 0.30–1.00 (cyan/green ramp)
+  "#BFFA9D", "#D1FA95", "#F5FA85",        # 1.00–3.00 (yellow/green ramp)
+  "#FAB73D", "#FA7A00", "#FA3E00"  
 ]
-
 # Salinity color scale
 SALINITY_COLORS = [
     '#29186b',
