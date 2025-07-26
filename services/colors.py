@@ -34,7 +34,7 @@ SST_COLORS_HIGH_CONTRAST = [
 
 # Chlorophyll color scale
 CHLOROPHYLL_COLORS = [
-  "#2b005a", "#4b0099", "#6d00d8",        # 0.03–0.10 (purple ramp)
+  "#14002A","#2b005a", "#4b0099", "#6d00d8",        # 0.03–0.10 (purple ramp)
   "#3535B1", "#5050DF", "#7070FF",        # 0.10–0.30 (blue ramp)
   "#2A9A8F", "#4ECFAA", "#76F9CD",        # 0.30–1.00 (cyan/green ramp)
   "#BFFA9D", "#D1FA95", "#F5FA85",        # 1.00–3.00 (yellow/green ramp)
