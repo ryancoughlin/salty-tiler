@@ -16,7 +16,6 @@ import os
 from titiler.core.middleware import CacheControlMiddleware, TotalTimeMiddleware
 
 # Import routes
-from routes.metadata import router as metadata_router
 from routes.tiles import router as tiles_router
 
 # Import color service
@@ -72,7 +71,6 @@ app.include_router(cog.router, prefix="/cog", tags=["Cloud Optimized GeoTIFF"])
 app.include_router(colormap_factory.router, tags=["ColorMaps"])
 
 # Register application-specific routers
-app.include_router(metadata_router)
 app.include_router(tiles_router)
 
 # Health check endpoint for Docker

@@ -49,25 +49,6 @@ def _apply_chlorophyll_scaling(min_val: float, max_val: float) -> tuple[float, f
     
     return transformed_min, transformed_max
 
-def _apply_water_clarity_scaling(min_val: float, max_val: float) -> tuple[float, float]:
-    """
-    Apply symlog scaling for water clarity (Kd₄₉₀) data.
-    
-    Optimized for actual data distribution:
-    - 96.8% of data is in 0.047-0.545 m⁻¹ range
-    - Linear scaling: 0.02-0.08 m⁻¹ (ultra-clear waters)  
-    - Log scaling: 0.08-6.0 m⁻¹ (clear to turbid waters)
-    
-    Very low linthresh ensures maximum detail in the range where most data exists.
-    
-    vmin=0.02, vmax=6.0, linthresh=0.08, base=2
-    """
-    linthresh = 0.08  # Very low threshold - most data (96.8%) gets log scaling detail
-    base = 2.0
-    transformed_min = _symlog_transform(min_val, linthresh=linthresh, base=base)
-    transformed_max = _symlog_transform(max_val, linthresh=linthresh, base=base)
-    return transformed_min, transformed_max
-
 def _serialize_colormap(colormap: Any) -> str:
     """Serialize colormap dict to a JSON string for hashing."""
     # Assume colormap is a dict[int, tuple[int, int, int, int]]
