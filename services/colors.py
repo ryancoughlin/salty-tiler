@@ -35,10 +35,10 @@ SST_COLORS_HIGH_CONTRAST = [
 # Chlorophyll color scale - High contrast for fishing contours
 CHLOROPHYLL_COLORS = [
     "#000B1E",  # 0.00 - Deep blue-black (open ocean, no chlorophyll)
-    "#001F3F",  # 0.10 - Very dark blue (ultra-oligotrophic)
-    "#0066CC",  # 0.30 - Ocean blue (oligotrophic - bigger jump)
-    "#00CCFF",  # 0.50 - Bright cyan (low mesotrophic - bigger jump)
-    "#10B981",  # 1.00 - Emerald green (mesotrophic - bigger jump)
+    "#4338CA",  # 0.10 - Bright purple (ultra-oligotrophic)
+    "#7C3AED",  # 0.20 - Toned violet (oligotrophic - sophisticated contrast)
+    "#0066CC",  # 0.50 - Ocean blue (low mesotrophic)
+    "#10B981",  # 1.00 - Emerald green (mesotrophic)
     "#059669",  # 2.00 - Forest green (eutrophic)
     "#D97706",  # 3.00 - Warm amber (high productivity)
     "#B91C1C",  # 4.00 - Deep crimson (algal bloom)
