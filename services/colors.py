@@ -34,14 +34,12 @@ SST_COLORS_HIGH_CONTRAST = [
 
 # Chlorophyll color scale - High contrast for fishing contours
 CHLOROPHYLL_COLORS = [
-    "#0A1A2A",  # 0.00 - Deep charcoal-blue (open ocean, lowest productivity)
-    "#1E3A8A",  # 0.67 - Rich indigo (slight productivity)
-    "#3B82F6",  # 1.33 - Vibrant cobalt (low productivity)
-    "#06B6D4",  # 2.00 - Teal blue (moderate productivity)
-    "#10B981",  # 2.67 - Emerald green (good productivity)
-    "#F59E0B",  # 3.33 - Amber gold (high productivity)
-    "#F97316",  # 4.00 - Vibrant orange (very high productivity)
-    "#DC2626",  # 4.67 - Crimson red (highest productivity - algal blooms)
+    "#001F3F",  # 0.00 - Deep ocean blue
+    "#0066CC",  # 1.33 - Ocean blue
+    "#00CCFF",  # 2.67 - Cyan blue
+    "#00CC66",  # 3.20 - Green
+    "#FFD700",  # 3.73 - Gold
+    "#FF8C42",  # 4.00 - Coral (high productivity)
 ]
 # Salinity color scale
 SALINITY_COLORS = [
