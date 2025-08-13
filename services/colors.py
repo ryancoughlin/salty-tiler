@@ -17,18 +17,19 @@ def hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
 
-# User's high contrast color scale
+# User's high contrast color scale (evenly spaced, visually uniform)
 SST_COLORS_HIGH_CONTRAST = [
-    '#081d58', '#0d2167', '#122b76', '#173584', '#1c3f93',
-    '#2149a1', 
-    '#3a7bea', '#4185f8',
-    '#34d1db', 
-    '#0effc5', 
-    '#7ff000', 
-    '#ebf600', 
-    '#fec44f', '#fdb347', '#fca23f', '#fb9137', '#fa802f',
-    '#f96f27', '#f85e1f', '#f74d17', '#e6420e', '#d53e0d', 
-    '#c43a0c', '#b3360b', '#a2320a', '#912e09', '#802a08', 
+    # Deep blue to blue
+    '#081d58', '#16306e', '#21449b', '#2c5fcf', '#3883f6',
+    # Cyan to green
+    '#34d1db', '#0effc5', '#7ff000', '#ebf600',
+    # Yellow to orange
+    '#fec44f', '#fca23f', '#fb9137', '#fa802f', '#f96f27',
+    # Orange-red to red
+    '#f85e1f', '#f74d17', '#e6420e', '#d53e0d',
+    # Red-brown to brown
+    '#c43a0c', '#b3360b', '#a2320a', '#912e09', '#802a08',
+    # Brown to dark brown
     '#6f2607', '#5e2206'
 ]
 
