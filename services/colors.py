@@ -109,11 +109,44 @@ def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> 
     return continuous_map
 
 
+def create_gamma_colormap(color_list: List[str], num_colors: int = 256, gamma: float = 0.5) -> Dict[int, Tuple[int, int, int, int]]:
+    """Create a colormap with gamma bias toward low values ("fake log").
+
+    When gamma < 1, this emphasizes the lower end of the scale by warping the
+    interpolation parameter t -> t**gamma. This keeps linear rescale while
+    visually allocating more contrast to smaller values.
+    """
+    rgb_colors = [hex_to_rgb(color) for color in color_list]
+    num_segments = len(rgb_colors) - 1
+    if num_segments <= 0:
+        return {0: (*rgb_colors[0], 255)} if rgb_colors else {}
+
+    cmap: Dict[int, Tuple[int, int, int, int]] = {}
+    for idx in range(num_colors):
+        t = idx / (num_colors - 1) if num_colors > 1 else 0.0
+        s = t ** gamma
+        pos = s * num_segments
+        seg_index = min(int(pos), num_segments - 1)
+        local_t = pos - seg_index
+
+        r1, g1, b1 = rgb_colors[seg_index]
+        r2, g2, b2 = rgb_colors[seg_index + 1]
+        r = int(r1 * (1 - local_t) + r2 * local_t)
+        g = int(g1 * (1 - local_t) + g2 * local_t)
+        b = int(b1 * (1 - local_t) + b2 * local_t)
+        cmap[idx] = (r, g, b, 255)
+
+    return cmap
+
+
 def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     """Load and register all custom colormaps."""
     # Generate the continuous colormaps
     sst_colormap = create_continuous_colormap(SST_COLORS_HIGH_CONTRAST, 256)
     chlorophyll_colormap = create_continuous_colormap(CHLOROPHYLL_COLORS, 256)
+    # Fake-log variants: stronger emphasis on lower ranges for fishing use-cases
+    chlorophyll_low_focus = create_gamma_colormap(CHLOROPHYLL_COLORS, 256, gamma=0.5)
+    chlorophyll_low_focus_strong = create_gamma_colormap(CHLOROPHYLL_COLORS, 256, gamma=0.35)
     salinity_colormap = create_continuous_colormap(SALINITY_COLORS, 256)
     water_clarity_colormap = create_continuous_colormap(WATER_CLARITY_COLORS, 256)
     
@@ -128,7 +161,9 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     # Register custom colormaps
     custom_colormaps = {
         "sst_high_contrast": sst_colormap,
-        "chlorophyll": chlorophyll_colormap,
+        "chlorophyll": chlorophyll_low_focus,
+        "chlorophyll_low_focus": chlorophyll_low_focus,
+        "chlorophyll_low_focus_strong": chlorophyll_low_focus_strong,
         "salinity": salinity_colormap,
         "water_clarity": water_clarity_colormap,
         "custom_palette": custom_palette
