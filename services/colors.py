@@ -161,7 +161,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     # Register custom colormaps
     custom_colormaps = {
         "sst_high_contrast": sst_colormap,
-        "chlorophyll": chlorophyll_low_focus,
+        "chlorophyll": chlorophyll_low_focus_strong,
         "chlorophyll_low_focus": chlorophyll_low_focus,
         "chlorophyll_low_focus_strong": chlorophyll_low_focus_strong,
         "salinity": salinity_colormap,
