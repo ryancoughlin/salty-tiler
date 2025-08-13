@@ -32,13 +32,14 @@ SST_COLORS_HIGH_CONTRAST = [
     '#6f2607', '#5e2206'
 ]
 
-# Chlorophyll color scale - Offshore-focused, strong low-end hue transitions
+# Chlorophyll color scale - Offshore-focused, clean low-end contrast
 CHLOROPHYLL_COLORS = [
-    "#0A0F2C",  # ~0.00 - Deep navy (no chlorophyll)
-    "#1B2A7A",  # ~0.03 - Indigo
-    "#2742B5",  # ~0.06 - Royal blue
+    "#0B0535",  # ~0.00 - Deep blue-purple (no chlorophyll)
+    "#1E0D69",  # ~0.03 - Indigo-violet
+    "#2436A8",  # ~0.06 - Royal indigo-blue
     "#2F6BFF",  # 0.10 - Azure blue
-    "#00B7FF",  # ~0.13 - Cyan
+    "#BDE7FF",  # ~0.12 - Light azure band (clean separation)
+    "#00D8FF",  # ~0.14 - Cyan
     "#00E0D1",  # ~0.16 - Aqua teal
     "#12D39A",  # 0.20 - Sea green
     "#10B981",  # 1.00 - Emerald green (mesotrophic)
@@ -146,7 +147,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     chlorophyll_colormap = create_continuous_colormap(CHLOROPHYLL_COLORS, 256)
     # Fake-log variants: stronger emphasis on lower ranges for fishing use-cases
     chlorophyll_low_focus = create_gamma_colormap(CHLOROPHYLL_COLORS, 256, gamma=0.5)
-    chlorophyll_low_focus_strong = create_gamma_colormap(CHLOROPHYLL_COLORS, 256, gamma=0.35)
+    chlorophyll_low_focus_strong = create_gamma_colormap(CHLOROPHYLL_COLORS, 256, gamma=0.30)
     salinity_colormap = create_continuous_colormap(SALINITY_COLORS, 256)
     water_clarity_colormap = create_continuous_colormap(WATER_CLARITY_COLORS, 256)
     
