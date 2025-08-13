@@ -34,8 +34,8 @@ SST_COLORS_HIGH_CONTRAST = [
 
 # Chlorophyll color scale - High contrast for fishing contours
 CHLOROPHYLL_COLORS = [
-    #071C2C  # deep blue-black  (0–0.10)
-    #0057E7  # electric blue    (0.10–0.25)
+    #29186b  # deep blue-black  (0–0.10)
+    #1972b5  # electric blue    (0.10–0.25)
     #00C2FF  # bright cyan      (0.25–0.50)
     #22C55E  # vivid green      (0.50–1.00)
     #F4D03F  # warm yellow      (1.00–2.00)
