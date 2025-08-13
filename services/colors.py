@@ -35,16 +35,13 @@ SST_COLORS_HIGH_CONTRAST = [
 # Chlorophyll color scale - High contrast for fishing contours
 CHLOROPHYLL_COLORS = [
     "#1E1B4B",  # 0.00 - Dark indigo (open ocean, no chlorophyll)
-    "#312E81",  # 0.10 - Medium indigo (ultra-oligotrophic)
-    "#4338CA",  # 0.20 - Bright indigo (oligotrophic)
-    "#6366F1",  # 0.30 - Light indigo (low oligotrophic)
-    "#818CF8",  # 0.40 - Pale indigo (very low mesotrophic)
-    "#A5B4FC",  # 0.50 - Very pale indigo (low mesotrophic)
-    "#C7D2FE",  # 0.75 - Almost white-blue (low mesotrophic)
-    "#10B981",  # 1.00 - Emerald green (mesotrophic)
-    "#059669",  # 2.00 - Forest green (eutrophic)
-    "#D97706",  # 3.00 - Warm amber (high productivity)
-    "#B91C1C",  # 4.00 - Deep crimson (algal bloom)
+    "#4338CA",  # 0.15 - Bright indigo (ultra-oligotrophic - distinct break)
+    "#6366F1",  # 0.30 - Light indigo (oligotrophic - distinct break)
+    "#A5B4FC",  # 0.60 - Very pale indigo (low mesotrophic - distinct break)
+    "#10B981",  # 1.20 - Emerald green (mesotrophic - distinct break)
+    "#059669",  # 2.50 - Forest green (eutrophic - distinct break)
+    "#D97706",  # 3.50 - Warm amber (high productivity - distinct break)
+    "#B91C1C",  # 4.00 - Deep crimson (algal bloom - distinct break)
 ]
 # Salinity color scale
 SALINITY_COLORS = [
