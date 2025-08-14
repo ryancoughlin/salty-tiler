@@ -48,21 +48,13 @@ CHLOROPHYLL_COLORS = [
     "#D97706",  # 3.00 - Warm amber (high productivity)
     "#B91C1C",  # 4.00 - Deep crimson (algal bloom)
 ]
-# Salinity color scale
+
 SALINITY_COLORS = [
-    '#29186b',
-    '#2b2f8e',
-    '#224b9f',
-    '#1972b5',
-    '#1b9abe',
-    '#25beca',
-    '#52dbc1',
-    '#8aeaa8',
-    '#c5f298',
-    '#f9f287'
+    '#0a0d3a', '#0d1f6d', '#12328f', '#1746b1',
+    '#1f7bbf', '#22a6c5', '#27c8b8', '#3fdf9b',
+    '#87f27a', '#c9f560', '#f7f060'
 ]
 
-# Water clarity (K490) color scale
 WATER_CLARITY_COLORS = [
     '#00204c', '#002b66', '#003780', '#00439a', '#004fb4',
     '#005bce', '#0067e8', '#0073ff', '#198eff', '#32a9ff',
