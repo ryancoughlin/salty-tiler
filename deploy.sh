@@ -7,7 +7,6 @@ echo "🌊 Salty Tiler - Docker Deployment Script"
 IMAGE_NAME="salty-tiler"
 CONTAINER_NAME="salty-tiler"
 PORT="8001"
-ENV_FILE="env.example"
 
 # Function to check if Docker is running
 check_docker() {
@@ -21,30 +20,17 @@ check_docker() {
 deploy_with_compose() {
     echo "🏗️  Building and deploying with docker-compose..."
     
-    # Stop existing containers with force and remove orphans
-    echo "🛑 Stopping existing containers..."
-    docker-compose down --remove-orphans || true
+    # Stop and remove existing containers
+    echo "🛑 Stopping and removing existing containers..."
+    docker-compose down --remove-orphans
     
-    # Force remove any lingering containers with the same name
-    echo "🧹 Cleaning up any existing containers..."
+    # Force remove the container if it still exists
+    echo "🧹 Force removing any lingering container..."
     docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
-    # Wait until the container is fully removed
-    while [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; do
-        echo "⏳ Waiting for $CONTAINER_NAME to be fully removed..."
-        docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
-        sleep 1
-    done
     
-    # Prune any dangling containers
-    docker container prune -f || true
-
-    # Clear the COG cache directory
-    echo "🧹 Clearing /tmp/cog_cache on host..."
-    rm -rf /tmp/cog_cache
-    
-    # Build and start new containers
-    echo "🚀 Building and starting containers..."
-    docker-compose up --build -d --force-recreate
+    # Build and start new container
+    echo "🚀 Building and starting new container..."
+    docker-compose up --build -d
     
     echo "✅ Container started successfully"
     echo "🌐 Service available at: http://localhost:$PORT"
@@ -87,13 +73,6 @@ case "${1:-deploy}" in
     "stop")
         echo "🛑 Stopping containers..."
         docker-compose down --remove-orphans
-        docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
-        # Wait until the container is fully removed
-        while [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; do
-            echo "⏳ Waiting for $CONTAINER_NAME to be fully removed..."
-            docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
-            sleep 1
-        done
         echo "✅ Containers stopped"
         ;;
     "restart")
