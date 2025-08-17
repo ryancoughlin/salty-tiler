@@ -33,6 +33,33 @@ SST_COLORS_HIGH_CONTRAST = [
     '#6f2607', '#5e2206'
 ]
 
+# Salty Vibes SST color scale - Ocean-inspired gradient
+SST_COLORS_SALTY_VIBES = [
+    # Deep ocean blues
+    '#0d1554', '#0f1960', '#121e6c', '#142378', '#172884',
+    '#192d90', '#1c329c', '#1e37a8', '#213db4', '#2342c0',
+    
+    # Transitional blues to cyans
+    '#2647cc', '#264fd8', '#3057e4', '#415fe4', '#5267e4',
+    '#6370e4', '#747ae4', '#8585e4', '#968fe4', '#a799e4',
+    
+    # Ocean teals and greens
+    '#68c9bf', '#5ecfb9', '#55d5b2', '#4ddcac', '#44e2a5',
+    '#3ce99f', '#33ef98', '#2bf691', '#22fc8b', '#1aff85',
+    
+    # Warm yellows
+    '#c7e8b4', '#d3eaa6', '#e0ec97', '#ecee89', '#f9f07b',
+    '#fff267', '#ffe854', '#ffdf41', '#ffd52e', '#ffcc1a',
+    
+    # Hot oranges
+    '#ffbe17', '#ffb114', '#ffa412', '#ff970f', '#ff8a0d',
+    '#ff7d0a', '#ff7008', '#fd6307', '#f95505', '#f64804',
+    
+    # Intense reds
+    '#f33b02', '#eb2e01', '#e32100', '#dd1500', '#d60800',
+    '#cf0003', '#be000a', '#ad0011', '#9c0018', '#8b001f'
+]
+
 # Chlorophyll color scale - Offshore-focused, clean low-end contrast
 CHLOROPHYLL_COLORS = [
     "#0B0535",  # ~0.00 - Deep blue-purple (no chlorophyll)
@@ -137,6 +164,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     """Load and register all custom colormaps."""
     # Generate the continuous colormaps
     sst_colormap = create_continuous_colormap(SST_COLORS_HIGH_CONTRAST, 256)
+    sst_salty_vibes_colormap = create_continuous_colormap(SST_COLORS_SALTY_VIBES, 256)
     chlorophyll_colormap = create_continuous_colormap(CHLOROPHYLL_COLORS, 256)
     # Fake-log variants: stronger emphasis on lower ranges for fishing use-cases
     chlorophyll_low_focus = create_gamma_colormap(CHLOROPHYLL_COLORS, 256, gamma=0.5)
@@ -155,6 +183,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     # Register custom colormaps
     custom_colormaps = {
         "sst_high_contrast": sst_colormap,
+        "sst_salty_vibes": sst_salty_vibes_colormap,
         "chlorophyll": chlorophyll_low_focus_strong,
         "chlorophyll_low_focus": chlorophyll_low_focus,
         "chlorophyll_low_focus_strong": chlorophyll_low_focus_strong,
