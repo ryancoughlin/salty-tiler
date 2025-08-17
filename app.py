@@ -9,102 +9,21 @@ from fastapi import FastAPI, Request
 from titiler.core.factory import TilerFactory, ColorMapFactory
 from titiler.core.errors import DEFAULT_STATUS_CODES, add_exception_handlers
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
-from typing import Dict, Tuple, Any
 import uvicorn
-import json
 import os
 from urllib.parse import urlencode, parse_qs, urlparse, urlunparse
 
 # No heavy middleware imports
 
 # Import routes
-from routes.metadata import router as metadata_router
 from routes.tiles import router as tiles_router
 
-# Import color dependencies
-from rio_tiler.colormap import cmap as default_cmap
-from titiler.core.dependencies import create_colormap_dependency
+# Import color service
+from services.colors import register_colormaps
 
-# Custom dependency to automatically set bidx=1 when missing
-def auto_bidx_dependency(bidx: int = None) -> int:
-    """Automatically set bidx=1 if not specified for backward compatibility."""
-    return bidx if bidx is not None else int(os.getenv("DEFAULT_BAND", "1"))
 
-# Define custom SST color map based on user's high contrast palette
-# Convert the list of hex colors to a continuous colormap
-def hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
-    """Convert hex color string to RGB tuple."""
-    hex_color = hex_color.lstrip('#')
-    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-
-# User's high contrast color scale
-SST_COLORS_HIGH_CONTRAST = [
-    '#081d58', '#0d2167', '#122b76', '#173584', '#1c3f93',
-    '#2149a1', 
-    '#3a7bea', '#4185f8',
-    '#34d1db', 
-    '#0effc5', 
-    '#7ff000', 
-    '#ebf600', 
-    '#fec44f', '#fdb347', '#fca23f', '#fb9137', '#fa802f',
-    '#f96f27', '#f85e1f', '#f74d17', '#e6420e', '#d53e0d', 
-    '#c43a0c', '#b3360b', '#a2320a', '#912e09', '#802a08', 
-    '#6f2607', '#5e2206'
-]
-
-# Chlorophyll color scale
-CHLOROPHYLL_COLORS = [
-    "#0C0D6C", "#1A1A83", "#28289A", "#3535B1", "#4343C8",
-    "#5050DF", "#5D5DF6", "#7070FF", "#8282FF", "#9494FF",
-    
-    "#2A9A8F", "#31A594", "#38B099", "#3FBB9E", "#46C6A3",
-    "#4ECFAA", "#56D8B1", "#5EE1B8", "#66EABF", "#6EF3C6",
-    
-    "#76F9CD", "#88FAC5", "#9AFABD", "#ACFAB5", "#BFFA9D",
-    "#D1FA95", "#E3FA8D", "#F5FA85", "#FAFD6D", "#FAED65",
-    
-    "#FADD5D", "#FAD455", "#FACA4D", "#FAC045", "#FAB73D",
-    "#FAAD35", "#FAA32D", "#FA9925", "#FA8F1D", "#FA7A00"
-]
-
-# Salinity color scale
-SALINITY_COLORS = [
-    '#29186b',
-    '#2b2f8e',
-    '#224b9f',
-    '#1972b5',
-    '#1b9abe',
-    '#25beca',
-    '#52dbc1',
-    '#8aeaa8',
-    '#c5f298',
-    '#f9f287'
-]
-
-# Create simple colormaps (no heavy interpolation)
-sst_colormap = {i: hex_to_rgb(SST_COLORS_HIGH_CONTRAST[i % len(SST_COLORS_HIGH_CONTRAST)]) + (255,) 
-                for i in range(256)}
-chlorophyll_colormap = {i: hex_to_rgb(CHLOROPHYLL_COLORS[i % len(CHLOROPHYLL_COLORS)]) + (255,) 
-                       for i in range(256)}
-salinity_colormap = {i: hex_to_rgb(SALINITY_COLORS[i % len(SALINITY_COLORS)]) + (255,) 
-                    for i in range(256)}
-
-# Load palette from JSON
-with open("sst_colormap.json") as f:
-    custom_palette = json.load(f)
-
-# Register custom colormaps
-custom_colormaps = {
-    "sst_high_contrast": sst_colormap,
-    "chlorophyll": chlorophyll_colormap,
-    "salinity": salinity_colormap,
-    "custom_palette": custom_palette
-}
-
-# Register the custom colormap with rio-tiler
-cmap = default_cmap.register(custom_colormaps)
-ColorMapParams = create_colormap_dependency(cmap)
+# Register all colormaps
+ColorMapParams, cmap = register_colormaps()
 
 # Initialize the FastAPI app
 app = FastAPI(
@@ -220,7 +139,6 @@ app.include_router(cog.router, prefix="/cog", tags=["Cloud Optimized GeoTIFF"])
 app.include_router(colormap_factory.router, tags=["ColorMaps"])
 
 # Register application-specific routers
-app.include_router(metadata_router)
 app.include_router(tiles_router)
 
 # Health check endpoint for Docker

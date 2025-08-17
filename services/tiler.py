@@ -5,9 +5,18 @@ from functools import lru_cache
 import json
 import os
 import numpy as np
+import time
+from collections import defaultdict
 
 # TilerFactory instance with bilinear resampling
 cog_tiler = TilerFactory()
+
+# Simple set to track seen cache keys for hit/miss logging (dev only)
+_seen_cache_keys = set()
+
+# Request throttling for concurrent COG access
+_last_request_time = defaultdict(float)
+_min_request_interval = 0.05  # 50ms between requests to same COG (reduced from 100ms)
 
 def _symlog_transform(value: float, linthresh: float = 0.3, base: float = 2.0) -> float:
     """
@@ -46,8 +55,22 @@ def _serialize_colormap(colormap: Any) -> str:
     # Sort keys for deterministic output
     return json.dumps(colormap, sort_keys=True) if colormap else "null"
 
-@lru_cache(maxsize=512)  # Smaller cache size for stability
-def render_tile(
+def _throttle_cog_request(path: str):
+    """
+    Light throttling to prevent overwhelming GDAL HTTP driver during timeline scrubbing.
+    """
+    if path.startswith(('http://', 'https://')):
+        current_time = time.time()
+        last_time = _last_request_time[path]
+        
+        if current_time - last_time < _min_request_interval:
+            sleep_time = _min_request_interval - (current_time - last_time)
+            time.sleep(sleep_time)
+        
+        _last_request_time[path] = time.time()
+
+@lru_cache(maxsize=int(os.getenv("TILE_CACHE_SIZE", "2048")))
+def _render_tile_cached(
     path: str,
     z: int,
     x: int,
@@ -56,7 +79,7 @@ def render_tile(
     max_value: float,
     colormap_name: Optional[str] = None,
     colormap_bins: int = 256,
-    use_log_scale: bool = False,
+    expression: str = "b1",
 ) -> bytes:
     """
     Render a PNG tile from a COG using TiTiler with bilinear resampling and a colormap.
@@ -88,4 +111,51 @@ def render_tile(
     if colormap_name:
         kwargs["colormap_name"] = colormap_name
         
-    return cog_tiler.render(**kwargs) 
+    # Add expression if provided
+    if expression != "b1":
+        kwargs["expression"] = expression
+        
+    return cog_tiler.render(**kwargs)
+
+def render_tile(
+    path: str,
+    z: int,
+    x: int,
+    y: int,
+    min_value: float,
+    max_value: float,
+    colormap: Any = None,
+    colormap_name: Optional[str] = None,
+    colormap_bins: int = 256,
+    use_log_scale: bool = False,
+    dataset_type: Optional[str] = None,
+    expression: str = "b1",
+) -> bytes:
+    """
+    Render a PNG tile from a COG using TiTiler with bilinear resampling and a colormap.
+    Returns PNG bytes. Uses in-memory LRU cache for speed.
+    Supports both local paths and external URLs.
+    
+    Args:
+        path: Path or URL to the COG file
+        z, x, y: Tile coordinates
+        min_value, max_value: Scale range for colormap
+        colormap: Custom colormap dict
+        colormap_name: Named colormap registered in app
+        colormap_bins: Number of colormap bins
+        use_log_scale: Deprecated - use expression parameter instead
+        dataset_type: Deprecated - use expression parameter instead
+        expression: TiTiler expression for data transformation (e.g., "log10(b1+1e-6)")
+    """
+    # No more custom log scaling - use TiTiler's native expression support
+    
+    _throttle_cog_request(path)
+    colormap_serialized = _serialize_colormap(colormap)
+    key = (path, z, x, y, min_value, max_value, colormap_serialized, colormap_name, colormap_bins, expression)
+    cache_status = "HIT" if key in _seen_cache_keys else "MISS"
+    url_type = "URL" if path.startswith("http") else "LOCAL"
+    scale_type = "EXPR" if expression != "b1" else "LINEAR"
+    print(f"[CACHE] {cache_status}: {url_type} {path} z={z} x={x} y={y} min={min_value} max={max_value} scale={scale_type} expr={expression}")
+    if key not in _seen_cache_keys:
+        _seen_cache_keys.add(key)
+    return _render_tile_cached(path, z, x, y, min_value, max_value, colormap_serialized, colormap_name, colormap_bins, expression) 
