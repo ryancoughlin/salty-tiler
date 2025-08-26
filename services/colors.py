@@ -193,7 +193,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     chlorophyll_low_focus_strong = create_gamma_colormap(CHLOROPHYLL_COLORS, 256, gamma=0.30)
     salinity_colormap = create_continuous_colormap(SALINITY_COLORS, 256)
     water_clarity_colormap = create_continuous_colormap(WATER_CLARITY_COLORS, 256)
-    mld_colormap = create_continuous_colormap(MLD_COLORS, 256)
+    mld_colormap = create_continuous_colormap(MIXED_LAYER_DEPTH_COLORS['scale'], 256)
     
     # Load palette from JSON
     try:
