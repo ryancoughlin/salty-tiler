@@ -91,20 +91,26 @@ WATER_CLARITY_COLORS = [
     '#66ff66', '#4fff4f', '#38ff38', '#21ff21', '#0aff0a'
 ]
 
-# Mixed Layer Depth color scale - Shallow (light) to deep (dark)
-# Represents ocean depth from surface mixed layer to deeper waters
-MLD_COLORS = [
-    '#e6f3ff',  # Very shallow (0-10m) - Very light blue
-    '#b3d9ff',  # Shallow (10-25m) - Light blue
-    '#80bfff',  # Shallow-moderate (25-50m) - Medium light blue
-    '#4da6ff',  # Moderate (50-75m) - Medium blue
-    '#1a8cff',  # Moderate-deep (75-100m) - Blue
-    '#0073e6',  # Deep (100-150m) - Medium dark blue
-    '#005ab3',  # Deep-very deep (150-200m) - Dark blue
-    '#004080',  # Very deep (200-300m) - Very dark blue
-    '#00264d',  # Extremely deep (300-500m) - Deep navy
-    '#000d1a'   # Maximum depth (500m+) - Almost black
-]
+# Mixed Layer Depth - cool to warm progression with brightened professional tones
+# Better contrast in shallow range while maintaining visual harmony
+from typing import Final, Dict
+
+MIXED_LAYER_DEPTH_COLORS: Final[Dict] = {
+    'scale': [
+        '#2d2d6b',  # brightened indigo (shallow MLD)
+        '#1e4db8',  # brighter deep blue
+        '#2196f3',  # bright blue
+        '#03a9f4',  # light blue
+        '#00bcd4',  # bright cyan
+        '#009688',  # bright teal
+        '#4caf50',  # bright green
+        '#8bc34a',  # lime green
+        '#cddc39',  # bright yellow-green
+        '#ffc107',  # bright amber
+        '#ff9800',  # bright orange
+        '#f44336',  # bright red-orange (deep MLD)
+    ]
+}
 
 
 def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> Dict[int, Tuple[int, int, int, int]]:
