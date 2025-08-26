@@ -82,12 +82,28 @@ SALINITY_COLORS = [
     '#87f27a', '#c9f560', '#f7f060'
 ]
 
+# Water clarity color scale - Deep blue to bright green
 WATER_CLARITY_COLORS = [
     '#00204c', '#002b66', '#003780', '#00439a', '#004fb4',
     '#005bce', '#0067e8', '#0073ff', '#198eff', '#32a9ff',
     '#4bc4ff', '#64dfff', '#7dffff', '#7dffef', '#7dffdf',
     '#7dffcf', '#7dffbf', '#7dffaf', '#7dff9f', '#7dff8f',
     '#66ff66', '#4fff4f', '#38ff38', '#21ff21', '#0aff0a'
+]
+
+# Mixed Layer Depth color scale - Shallow (light) to deep (dark)
+# Represents ocean depth from surface mixed layer to deeper waters
+MLD_COLORS = [
+    '#e6f3ff',  # Very shallow (0-10m) - Very light blue
+    '#b3d9ff',  # Shallow (10-25m) - Light blue
+    '#80bfff',  # Shallow-moderate (25-50m) - Medium light blue
+    '#4da6ff',  # Moderate (50-75m) - Medium blue
+    '#1a8cff',  # Moderate-deep (75-100m) - Blue
+    '#0073e6',  # Deep (100-150m) - Medium dark blue
+    '#005ab3',  # Deep-very deep (150-200m) - Dark blue
+    '#004080',  # Very deep (200-300m) - Very dark blue
+    '#00264d',  # Extremely deep (300-500m) - Deep navy
+    '#000d1a'   # Maximum depth (500m+) - Almost black
 ]
 
 
@@ -171,6 +187,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     chlorophyll_low_focus_strong = create_gamma_colormap(CHLOROPHYLL_COLORS, 256, gamma=0.30)
     salinity_colormap = create_continuous_colormap(SALINITY_COLORS, 256)
     water_clarity_colormap = create_continuous_colormap(WATER_CLARITY_COLORS, 256)
+    mld_colormap = create_continuous_colormap(MLD_COLORS, 256)
     
     # Load palette from JSON
     try:
@@ -189,6 +206,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
         "chlorophyll_low_focus_strong": chlorophyll_low_focus_strong,
         "salinity": salinity_colormap,
         "water_clarity": water_clarity_colormap,
+        "mld_default": mld_colormap,
         "custom_palette": custom_palette
     }
     
