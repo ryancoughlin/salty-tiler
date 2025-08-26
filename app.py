@@ -6,14 +6,15 @@ This application uses TiTiler to serve Cloud-Optimized GeoTIFF (COG) files
 containing sea surface temperature and chlorophyll data.
 """
 from fastapi import FastAPI, Request
-from titiler.core.factory import TilerFactory, ColorMapFactory
+from titiler.core.factory import ColorMapFactory
 from titiler.core.errors import DEFAULT_STATUS_CODES, add_exception_handlers
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import os
 from urllib.parse import urlencode, parse_qs, urlparse, urlunparse
 
-# No heavy middleware imports
+# Import caching
+from cache import setup_cache, cached
 
 # Import routes
 from routes.tiles import router as tiles_router
@@ -32,6 +33,12 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# Setup cache on startup (1 day TTL = 86400 seconds)
+@app.on_event("startup")
+async def startup_event():
+    """Initialize cache on application startup."""
+    setup_cache(ttl=86400)  # 24 hours cache
+
 # Configure CORS from environment variables
 cors_origins = os.getenv("CORS_ORIGINS", "*").split(",")
 cors_methods = os.getenv("CORS_METHODS", "GET,POST,OPTIONS").split(",")
@@ -45,89 +52,35 @@ app.add_middleware(
     allow_headers=cors_headers,
 )
 
-# No heavy middleware - keep it simple for performance
-
-# Middleware to handle HTTP COG access issues
-# @app.middleware("http")
-# async def handle_cog_http_issues(request: Request, call_next):
-#     """Handle HTTP COG access issues by downloading files locally when needed."""
-#     import tempfile
-#     import requests
-#     import os
-#     import hashlib
-#     
-#     # Only intercept COG tile requests
-#     if "/cog/tiles/" in request.url.path:
-#         # Get the URL parameter
-#         url_param = request.query_params.get("url")
-#         if url_param and url_param.startswith("http"):
-#             # Check if this is a known problematic URL pattern
-#             if "data.saltyoffshore.com" in url_param:
-#                 # Create a local copy in temp directory
-#                 temp_dir = "/tmp/cog_cache"
-#                 os.makedirs(temp_dir, exist_ok=True)
-#                 
-#                 # Create a unique filename based on the full URL path to avoid region conflicts
-#                 # Use hash of the URL to create unique cache key per region/dataset
-#                 url_hash = hashlib.md5(url_param.encode()).hexdigest()
-#                 filename = f"{url_hash}.tif"
-#                 local_path = os.path.join(temp_dir, filename)
-#                 
-#                 # Check if file already exists locally
-#                 if not os.path.exists(local_path):
-#                     try:
-#                         # Download the file
-#                         response = requests.get(url_param, timeout=30)
-#                         response.raise_for_status()
-#                         
-#                         with open(local_path, "wb") as f:
-#                             f.write(response.content)
-#                         
-#                         print(f"[COG] Downloaded {url_param} to {local_path}")
-#                     except Exception as e:
-#                         print(f"[COG] Failed to download {url_param}: {e}")
-#                         # Continue with original request
-#                         return await call_next(request)
-#                 
-#                 # Replace the URL parameter with local path
-#                 new_query_params = dict(request.query_params)
-#                 new_query_params["url"] = f"file://{local_path}"
-#                 
-#                 # Reconstruct the request
-#                 new_query_string = "&".join([f"{k}={v}" for k, v in new_query_params.items()])
-#                 request.scope["query_string"] = new_query_string.encode()
-#     
-#     return await call_next(request)
-
-# Middleware to strip bidx parameter from COG tile requests
-@app.middleware("http")
-async def strip_bidx_parameter(request: Request, call_next):
-    """Strip bidx parameter from COG tile requests to handle iOS app's automatic bidx=1 addition."""
-    
-    # Only intercept COG tile requests
-    if "/cog/tiles/" in request.url.path:
-        # Check if bidx parameter exists
-        if "bidx" in request.query_params:
-            # Create new query params without bidx
-            new_query_params = dict(request.query_params)
-            removed_bidx = new_query_params.pop("bidx", None)
-            
-            if removed_bidx:
-                print(f"[BIDX] Removed bidx={removed_bidx} from request")
-                
-                # Reconstruct the request without bidx
-                new_query_string = "&".join([f"{k}={v}" for k, v in new_query_params.items()])
-                request.scope["query_string"] = new_query_string.encode()
-    
-    return await call_next(request)
+# Add TiTiler's built-in cache control middleware
+try:
+    from titiler.core.middleware import CacheControlMiddleware
+    app.add_middleware(CacheControlMiddleware, cachecontrol="public, max-age=86400")
+    print("[CACHE] Added CacheControlMiddleware")
+except ImportError:
+    print("[CACHE] CacheControlMiddleware not available")
 
 # Create a TilerFactory with the custom colormap and all standard endpoints
+from titiler.core.factory import TilerFactory
 cog = TilerFactory(
     colormap_dependency=ColorMapParams,
     add_preview=True,
     add_part=True,
     add_viewer=True,
 )
+
+# Apply caching to tile routes after they're registered
+def apply_caching_to_routes():
+    """Apply caching to tile routes after they're registered."""
+    for route in cog.router.routes:
+        if hasattr(route, 'path') and '/tiles/' in route.path and hasattr(route, 'endpoint'):
+            # Wrap the endpoint with caching
+            original_endpoint = route.endpoint
+            route.endpoint = cached(alias="default")(original_endpoint)
+            print(f"[CACHE] Applied caching to route: {route.path}")
+
+# Apply caching to routes
+apply_caching_to_routes()
 
 # Create a ColorMapFactory to expose colormap discovery endpoints
 colormap_factory = ColorMapFactory(supported_colormaps=cmap)
