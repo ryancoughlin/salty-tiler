@@ -5,6 +5,7 @@ Based on TiTiler's caching example but simplified for in-memory only.
 """
 
 import asyncio
+import os
 from typing import Any, Dict
 
 import aiocache
@@ -63,12 +64,15 @@ class cached(aiocache.cached):
         return result
 
 
-def setup_cache(ttl: int = 3600):
+def setup_cache(ttl: int = None):
     """Setup aiocache with in-memory cache.
     
     Args:
-        ttl: Time to live in seconds (default: 1 hour)
+        ttl: Time to live in seconds (default: from CACHE_TTL env or 1 hour)
     """
+    # Use environment variable or provided TTL or default to 1 hour
+    if ttl is None:
+        ttl = int(os.getenv("CACHE_TTL", "3600"))
     config: Dict[str, Any] = {
         'cache': "aiocache.SimpleMemoryCache",
         'serializer': {

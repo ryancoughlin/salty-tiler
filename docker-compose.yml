@@ -8,9 +8,22 @@ services:
       - TILER_HOST=0.0.0.0
       - TILER_PORT=8001
       - COG_BASE_URL=https://data.saltyoffshore.com
+      # Cache configuration
+      - CACHE_TTL=86400
+      # GDAL optimizations (can override Dockerfile defaults)
+      - VSI_CACHE_SIZE=50000000
+      - GDAL_CACHEMAX=200
+      - CPL_VSIL_CURL_CACHE_SIZE=200000000
     volumes:
       # Mount custom colormap
       - ./sst_colormap.json:/app/sst_colormap.json:ro
+    # Resource limits for caching performance
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]

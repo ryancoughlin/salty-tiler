@@ -33,11 +33,27 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Setup cache on startup (1 day TTL = 86400 seconds)
+# Setup GDAL configuration and cache on startup (1 day TTL = 86400 seconds)
 @app.on_event("startup")
 async def startup_event():
-    """Initialize cache on application startup."""
-    setup_cache(ttl=86400)  # 24 hours cache
+    """Initialize GDAL configuration and cache on application startup."""
+    # Configure GDAL for optimal performance based on TiTiler recommendations
+    # https://developmentseed.org/titiler/advanced/performance_tuning/
+    
+    # Log current GDAL configuration (set by Docker)
+    gdal_vars = [
+        "GDAL_DISABLE_READDIR_ON_OPEN", "GDAL_CACHEMAX", "CPL_VSIL_CURL_CACHE_SIZE",
+        "VSI_CACHE", "VSI_CACHE_SIZE", "GDAL_HTTP_MERGE_CONSECUTIVE_RANGES",
+        "GDAL_HTTP_MULTIPLEX", "GDAL_HTTP_VERSION", "GDAL_BAND_BLOCK_CACHE"
+    ]
+    
+    print("[GDAL] Configuration:")
+    for var in gdal_vars:
+        value = os.getenv(var, "Not set")
+        print(f"  {var}={value}")
+    
+    # Initialize cache (TTL from environment or default)
+    setup_cache()  # Will use CACHE_TTL env var or default to 1 hour
 
 # Configure CORS from environment variables
 cors_origins = os.getenv("CORS_ORIGINS", "*").split(",")
