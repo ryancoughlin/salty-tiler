@@ -63,25 +63,23 @@ SST_COLORS_SALTY_VIBES = [
 from typing import Final, Dict
 
 # Chlorophyll color scale - Gulf Stream to productive shelf, explicit bounds
-CHLOROPHYLL_COLORS: Final[Dict] = {
-    'scale': [
-        '#8B3A8B',  # 0.00  bright indigo/pink mix (ultra-oligotrophic Gulf Stream look)
-        '#1a1a4b',  # 0.02  deep indigo-blue transition
-        '#0B3D91',  # 0.05  deep blue
-        '#0d5bb8',  # 0.075 deep blue to blue transition
-        '#1464F4',  # 0.10  blue
-        '#1e7ee8',  # 0.15  blue to blue-green transition
-        '#00B3B3',  # 0.20  blue-green
-        '#00a0a0',  # 0.35  blue-green to aqua transition
-        '#3CB371',  # 0.50  aqua-green
-        '#2d8f5a',  # 0.75  aqua-green to green transition
-        '#228B22',  # 1.00  dark green (productive waters)
-        '#4a9c2a',  # 1.50  green to yellow-green transition
-        '#F1C40F',  # 2.00  yellow-green to yellow
-        '#e6b800',  # 3.50  yellow to orange transition
-        '#D35400',  # 5.00  orange-red / brownish
-    ]
-}
+CHLOROPHYLL_COLORS = [
+    '#8B3A8B',  # 0.00  bright indigo/pink mix (ultra-oligotrophic Gulf Stream look)
+    '#1a1a4b',  # 0.02  deep indigo-blue transition
+    '#0B3D91',  # 0.05  deep blue
+    '#0d5bb8',  # 0.075 deep blue to blue transition
+    '#1464F4',  # 0.10  blue
+    '#1e7ee8',  # 0.15  blue to blue-green transition
+    '#00B3B3',  # 0.20  blue-green
+    '#00a0a0',  # 0.35  blue-green to aqua transition
+    '#3CB371',  # 0.50  aqua-green
+    '#2d8f5a',  # 0.75  aqua-green to green transition
+    '#228B22',  # 1.00  dark green (productive waters)
+    '#4a9c2a',  # 1.50  green to yellow-green transition
+    '#F1C40F',  # 2.00  yellow-green to yellow
+    '#e6b800',  # 3.50  yellow to orange transition
+    '#D35400',  # 5.00  orange-red / brownish
+]
 
 SALINITY_COLORS = [
     '#0a0d3a', '#0d1f6d', '#12328f', '#1746b1',
@@ -100,24 +98,20 @@ WATER_CLARITY_COLORS = [
 
 # Mixed Layer Depth - cool to warm progression with brightened professional tones
 # Better contrast in shallow range while maintaining visual harmony
-from typing import Final, Dict
-
-MIXED_LAYER_DEPTH_COLORS: Final[Dict] = {
-    'scale': [
-        '#2d2d6b',  # brightened indigo (shallow MLD)
-        '#1e4db8',  # brighter deep blue
-        '#2196f3',  # bright blue
-        '#03a9f4',  # light blue
-        '#00bcd4',  # bright cyan
-        '#009688',  # bright teal
-        '#4caf50',  # bright green
-        '#8bc34a',  # lime green
-        '#cddc39',  # bright yellow-green
-        '#ffc107',  # bright amber
-        '#ff9800',  # bright orange
-        '#f44336',  # bright red-orange (deep MLD)
-    ]
-}
+MLD_COLORS = [
+    '#2d2d6b',  # brightened indigo (shallow MLD)
+    '#1e4db8',  # brighter deep blue
+    '#2196f3',  # bright blue
+    '#03a9f4',  # light blue
+    '#00bcd4',  # bright cyan
+    '#009688',  # bright teal
+    '#4caf50',  # bright green
+    '#8bc34a',  # lime green
+    '#cddc39',  # bright yellow-green
+    '#ffc107',  # bright amber
+    '#ff9800',  # bright orange
+    '#f44336',  # bright red-orange (deep MLD)
+]
 
 
 def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> Dict[int, Tuple[int, int, int, int]]:
@@ -200,7 +194,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     chlorophyll_low_focus_strong = create_gamma_colormap(CHLOROPHYLL_COLORS, 256, gamma=0.30)
     salinity_colormap = create_continuous_colormap(SALINITY_COLORS, 256)
     water_clarity_colormap = create_continuous_colormap(WATER_CLARITY_COLORS, 256)
-    mld_colormap = create_continuous_colormap(MIXED_LAYER_DEPTH_COLORS['scale'], 256)
+    mld_colormap = create_continuous_colormap(MLD_COLORS, 256)
     
     # Load palette from JSON
     try:
