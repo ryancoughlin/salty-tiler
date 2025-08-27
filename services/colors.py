@@ -60,21 +60,28 @@ SST_COLORS_SALTY_VIBES = [
     '#cf0003', '#be000a', '#ad0011', '#9c0018', '#8b001f'
 ]
 
-# Chlorophyll color scale - Offshore-focused, clean low-end contrast
-CHLOROPHYLL_COLORS = [
-    "#0B0535",  # ~0.00 - Deep blue-purple (no chlorophyll)
-    "#1E0D69",  # ~0.03 - Indigo-violet
-    "#2436A8",  # ~0.06 - Royal indigo-blue
-    "#2F6BFF",  # 0.10 - Azure blue
-    "#BDE7FF",  # ~0.12 - Light azure band (clean separation)
-    "#00D8FF",  # ~0.14 - Cyan
-    "#00E0D1",  # ~0.16 - Aqua teal
-    "#12D39A",  # 0.20 - Sea green
-    "#10B981",  # 1.00 - Emerald green (mesotrophic)
-    "#059669",  # 2.00 - Forest green (eutrophic)
-    "#D97706",  # 3.00 - Warm amber (high productivity)
-    "#B91C1C",  # 4.00 - Deep crimson (algal bloom)
-]
+from typing import Final, Dict
+
+# Chlorophyll color scale - Gulf Stream to productive shelf, explicit bounds
+CHLOROPHYLL_COLORS: Final[Dict] = {
+    'scale': [
+        '#8B3A8B',  # 0.00  bright indigo/pink mix (ultra-oligotrophic Gulf Stream look)
+        '#1a1a4b',  # 0.02  deep indigo-blue transition
+        '#0B3D91',  # 0.05  deep blue
+        '#0d5bb8',  # 0.075 deep blue to blue transition
+        '#1464F4',  # 0.10  blue
+        '#1e7ee8',  # 0.15  blue to blue-green transition
+        '#00B3B3',  # 0.20  blue-green
+        '#00a0a0',  # 0.35  blue-green to aqua transition
+        '#3CB371',  # 0.50  aqua-green
+        '#2d8f5a',  # 0.75  aqua-green to green transition
+        '#228B22',  # 1.00  dark green (productive waters)
+        '#4a9c2a',  # 1.50  green to yellow-green transition
+        '#F1C40F',  # 2.00  yellow-green to yellow
+        '#e6b800',  # 3.50  yellow to orange transition
+        '#D35400',  # 5.00  orange-red / brownish
+    ]
+}
 
 SALINITY_COLORS = [
     '#0a0d3a', '#0d1f6d', '#12328f', '#1746b1',
