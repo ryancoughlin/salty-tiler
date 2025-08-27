@@ -63,22 +63,64 @@ SST_COLORS_SALTY_VIBES = [
 from typing import Final, Dict
 
 # Chlorophyll color scale - Gulf Stream to productive shelf, explicit bounds
+# Smooth chlorophyll colormap, 0–10 mg/m³, visually uniform, high resolution
 CHLOROPHYLL_COLORS = [
-    '#8B3A8B',  # 0.00  bright indigo/pink mix (ultra-oligotrophic Gulf Stream look)
-    '#1a1a4b',  # 0.02  deep indigo-blue transition
-    '#0B3D91',  # 0.05  deep blue
-    '#0d5bb8',  # 0.075 deep blue to blue transition
-    '#1464F4',  # 0.10  blue
-    '#1e7ee8',  # 0.15  blue to blue-green transition
-    '#00B3B3',  # 0.20  blue-green
-    '#00a0a0',  # 0.35  blue-green to aqua transition
-    '#3CB371',  # 0.50  aqua-green
-    '#2d8f5a',  # 0.75  aqua-green to green transition
-    '#228B22',  # 1.00  dark green (productive waters)
-    '#4a9c2a',  # 1.50  green to yellow-green transition
-    '#F1C40F',  # 2.00  yellow-green to yellow
-    '#e6b800',  # 3.50  yellow to orange transition
-    '#D35400',  # 5.00  orange-red / brownish
+    # 0.00–0.10: deep indigo to blue
+    '#8B3A8B',  # 0.00
+    '#7a3382',  # 0.01
+    '#682c79',  # 0.02
+    '#572570',  # 0.03
+    '#461e67',  # 0.04
+    '#35175e',  # 0.05
+    '#241055',  # 0.06
+    '#1a1a4b',  # 0.07
+    '#15306a',  # 0.08
+    '#0B3D91',  # 0.09
+    '#0d5bb8',  # 0.10
+
+    # 0.10–0.30: blue to blue-green
+    '#1464F4',  # 0.12
+    '#1e7ee8',  # 0.15
+    '#2696e0',  # 0.18
+    '#00B3B3',  # 0.20
+    '#00a0a0',  # 0.25
+    '#009090',  # 0.30
+
+    # 0.30–1.00: blue-green to green
+    '#3CB371',  # 0.35
+    '#34a86a',  # 0.40
+    '#2d8f5a',  # 0.50
+    '#29984d',  # 0.60
+    '#25a140',  # 0.70
+    '#228B22',  # 1.00
+
+    # 1.00–2.00: green to yellow-green
+    '#2e9c1e',  # 1.20
+    '#3aad1a',  # 1.40
+    '#4a9c2a',  # 1.50
+    '#7ebc1f',  # 1.70
+    '#b1dc14',  # 1.90
+    '#F1C40F',  # 2.00
+
+    # 2.00–5.00: yellow to orange
+    '#e6b800',  # 2.50
+    '#e1a600',  # 3.00
+    '#d98c00',  # 3.50
+    '#D35400',  # 4.00
+    '#c44500',  # 4.50
+    '#b53600',  # 5.00
+
+    # 5.00–10.00: orange to brownish-red
+    '#a62a00',  # 5.50
+    '#983000',  # 6.00
+    '#8a3600',  # 6.50
+    '#7c3c00',  # 7.00
+    '#6e4200',  # 7.50
+    '#605800',  # 8.00
+    '#526e00',  # 8.50
+    '#448400',  # 9.00
+    '#369a00',  # 9.50
+    '#28b000',  # 10.00
 ]
 
 SALINITY_COLORS = [
