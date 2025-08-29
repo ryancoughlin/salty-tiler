@@ -60,21 +60,24 @@ SST_COLORS_SALTY_VIBES = [
 ]
 
 CHLOROPHYLL_COLORS = [
-    '#8B3A8B',  # 0.00  bright indigo/pink mix (ultra-oligotrophic Gulf Stream look)
-    '#1a1a4b',  # 0.02  deep indigo-blue transition
-    '#0B3D91',  # 0.05  deep blue
-    '#0d5bb8',  # 0.075 deep blue to blue transition
-    '#1464F4',  # 0.10  blue
-    '#1e7ee8',  # 0.15  blue to blue-green transition
-    '#00B3B3',  # 0.20  blue-green
-    '#00a0a0',  # 0.35  blue-green to aqua transition
-    '#3CB371',  # 0.50  aqua-green
-    '#2d8f5a',  # 0.75  aqua-green to green transition
-    '#228B22',  # 1.00  dark green (productive waters)
-    '#4a9c2a',  # 1.50  green to yellow-green transition
-    '#F1C40F',  # 2.00  yellow-green to yellow
-    '#e6b800',  # 3.50  yellow to orange transition
-    '#D35400',  # 5.00  orange-red / brownish
+    '#ff69b4',  # -2.0 (log10 0.01) - vivid pink for ultra-low (log10) end
+    '#e75480',  # -1.7 - hot pink
+    '#c154c1',  # -1.4 - orchid
+    '#8B3A8B',  # -1.1 - bright indigo/pink mix (ultra-oligotrophic Gulf Stream look)
+    '#1a1a4b',  # -0.9 - deep indigo-blue transition
+    '#0B3D91',  # -0.7 - deep blue
+    '#0d5bb8',  # -0.5 - deep blue to blue transition
+    '#1464F4',  # -0.3 - blue
+    '#1e7ee8',  # -0.1 - blue to blue-green transition
+    '#00B3B3',  # 0.1 - blue-green
+    '#00a0a0',  # 0.3 - blue-green to aqua transition
+    '#3CB371',  # 0.5 - aqua-green
+    '#2d8f5a',  # 0.7 - aqua-green to green transition
+    '#228B22',  # 1.0 - dark green (productive waters)
+    '#4a9c2a',  # 1.3 - green to yellow-green transition
+    '#F1C40F',  # 1.6 - yellow-green to yellow
+    '#e6b800',  # 2.0 - yellow to orange transition
+    '#D35400',  # 2.5 - orange-red / brownish
 ]
 
 SALINITY_COLORS = [
@@ -106,7 +109,7 @@ MLD_COLORS = [
     '#cddc39',  # bright yellow-green
     '#ffc107',  # bright amber
     '#ff9800',  # bright orange
-    '#f44336',  # bright red-orange (deep MLD)
+    '#f44336',  # bright red-orange (deep MLD)c
 ]
 
 

@@ -22,9 +22,24 @@ from routes.tiles import router as tiles_router
 # Import color service
 from services.colors import register_colormaps
 
+# Import custom algorithms
+from algorithms import Log10, Log10Chlorophyll
+
 
 # Register all colormaps
 ColorMapParams, cmap = register_colormaps()
+
+# Register custom algorithms
+from titiler.core.algorithm import algorithms as default_algorithms
+from titiler.core.algorithm import Algorithms
+
+algorithms: Algorithms = default_algorithms.register({
+    "log10": Log10,
+    "log10_chlorophyll": Log10Chlorophyll,
+})
+
+# Create algorithm dependency
+PostProcessParams = algorithms.dependency
 
 # Initialize the FastAPI app
 app = FastAPI(
@@ -76,10 +91,11 @@ try:
 except ImportError:
     print("[CACHE] CacheControlMiddleware not available")
 
-# Create a TilerFactory with the custom colormap and all standard endpoints
+# Create a TilerFactory with the custom colormap, algorithms and all standard endpoints
 from titiler.core.factory import TilerFactory
 cog = TilerFactory(
     colormap_dependency=ColorMapParams,
+    process_dependency=PostProcessParams,
     add_preview=True,
     add_part=True,
     add_viewer=True,
