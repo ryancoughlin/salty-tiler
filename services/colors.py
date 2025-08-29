@@ -60,9 +60,7 @@ SST_COLORS_SALTY_VIBES = [
 ]
 
 CHLOROPHYLL_COLORS = [
-    '#ff69b4',  # -2.0 (log10 0.01) - vivid pink for ultra-low (log10) end
-    '#e75480',  # -1.7 - hot pink
-    '#c154c1',  # -1.4 - orchid
+    '#ff69b4',  # -2.0 (log10 0.01) - vivid pink for ultra-low (log10) end (Gulf Stream)
     '#8B3A8B',  # -1.1 - bright indigo/pink mix (ultra-oligotrophic Gulf Stream look)
     '#1a1a4b',  # -0.9 - deep indigo-blue transition
     '#0B3D91',  # -0.7 - deep blue
