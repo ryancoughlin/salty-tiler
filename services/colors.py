@@ -60,22 +60,17 @@ SST_COLORS_SALTY_VIBES = [
 ]
 
 CHLOROPHYLL_COLORS = [
-    '#ff69b4',  # -2.0 (log10 0.01) - vivid pink for ultra-low (log10) end (Gulf Stream)
-    '#8B3A8B',  # -1.1 - bright indigo/pink mix (ultra-oligotrophic Gulf Stream look)
-    '#1a1a4b',  # -0.9 - deep indigo-blue transition
-    '#0B3D91',  # -0.7 - deep blue
-    '#0d5bb8',  # -0.5 - deep blue to blue transition
-    '#1464F4',  # -0.3 - blue
-    '#1e7ee8',  # -0.1 - blue to blue-green transition
-    '#00B3B3',  # 0.1 - blue-green
-    '#00a0a0',  # 0.3 - blue-green to aqua transition
-    '#3CB371',  # 0.5 - aqua-green
-    '#2d8f5a',  # 0.7 - aqua-green to green transition
-    '#228B22',  # 1.0 - dark green (productive waters)
-    '#4a9c2a',  # 1.3 - green to yellow-green transition
-    '#F1C40F',  # 1.6 - yellow-green to yellow
-    '#e6b800',  # 2.0 - yellow to orange transition
-    '#D35400',  # 2.5 - orange-red / brownish
+    '#8B3A8B',  # 0.00 mg/m³ - bright indigo/pink mix (ultra-oligotrophic Gulf Stream look)
+    '#1a1a4b',  # 0.02 mg/m³ - deep indigo-blue transition
+    '#0B3D91',  # 0.05 mg/m³ - deep blue
+    '#0d5bb8',  # 0.10 mg/m³ - blue
+    '#1464F4',  # 0.20 mg/m³ - blue
+    '#1e7ee8',  # 0.35 mg/m³ - blue to blue-cyan
+    '#00B3B3',  # 0.50 mg/m³ - cyan
+    '#3fd1c7',  # 0.75 mg/m³ - light cyan
+    '#F1C40F',  # 1.00 mg/m³ - yellow (productive edge)
+    '#e6b800',  # 1.50 mg/m³ - yellow-orange
+    '#D35400',  # 2.00 mg/m³ - orange-brown (upper end)
 ]
 
 SALINITY_COLORS = [
