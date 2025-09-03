@@ -42,25 +42,29 @@ class Log10(BaseAlgorithm):
 
 
 class Log10Chlorophyll(BaseAlgorithm):
-    """Specialized log10 transformation for chlorophyll data.
-    
-    Pre-configured for chlorophyll with eps optimized for Gulf Stream waters.
+    """Specialized log10 transformation for chlorophyll data with clamping.
+
+    Clamps chlorophyll values to 0-2 mg/m³ range for realistic ocean visualization,
+    then applies log10 transformation. Optimized for coastal and Gulf Stream waters.
     Uses numpy.ma (masked arrays) to properly handle NoData.
     """
-    
-    # Algorithm parameters optimized for chlorophyll
-    eps: float = 0.00001  # Very small to push NoData values outside rescale range
-    
+
+    # Algorithm parameters optimized for 0-2 mg/m³ chlorophyll range
+    eps: float = 0.0001  # Small value to avoid log(0), suitable for 0-2 range
+    max_value: float = 2.0  # Maximum chlorophyll value (mg/m³)
+
     # Metadata
     input_nbands: int = 1
     output_nbands: int = 1
     output_dtype: str = "float32"
-    
+
     def __call__(self, img: ImageData) -> ImageData:
-        """Apply log10 transformation for chlorophyll data."""
+        """Apply clamping and log10 transformation for chlorophyll data."""
+        # First clamp values to 0-2 mg/m³ range, then apply eps for log safety
+        clamped_array = numpy.ma.clip(img.array, self.eps, self.max_value)
         # Use img.array (masked array) and numpy.ma functions like TiTiler does
-        transformed_array = numpy.ma.log10(numpy.ma.clip(img.array, self.eps, None))
-        
+        transformed_array = numpy.ma.log10(clamped_array)
+
         return ImageData(
             transformed_array,
             assets=img.assets,
