@@ -193,8 +193,8 @@ class ChlorophyllRangeMapper(BaseAlgorithm):
     max_value: float = 2.0  # Maximum chlorophyll value (mg/m³)
 
     # Define chlorophyll concentration breakpoints and corresponding RGB colors
-    breakpoints = [0.0, 0.05, 0.10, 0.30, 1.00, 2.00]
-    colors_rgb = [
+    breakpoints: list[float] = [0.0, 0.05, 0.10, 0.30, 1.00, 2.00]
+    colors_rgb: list[list[int]] = [
         [139, 58, 139],    # #8B3A8B - Purple water (0.00-0.05)
         [26, 26, 75],      # #1A1A4B - Deep Blue water (0.05-0.10)
         [13, 91, 184],     # #0D5BB8 - Blue (0.10-0.30)
@@ -265,8 +265,8 @@ class ChlorophyllSmoothMapper(BaseAlgorithm):
     max_value: float = 2.0  # Maximum chlorophyll value (mg/m³)
 
     # Define key concentration points and their colors for interpolation
-    conc_points = [0.0, 0.02, 0.05, 0.10, 0.20, 0.35, 0.50, 0.75, 1.00, 1.50, 2.00]
-    colors_rgb = [
+    conc_points: list[float] = [0.0, 0.02, 0.05, 0.10, 0.20, 0.35, 0.50, 0.75, 1.00, 1.50, 2.00]
+    colors_rgb: list[list[int]] = [
         [139, 58, 139],    # #8B3A8B - 0.00 mg/m³
         [26, 26, 75],      # #1A1A4B - 0.02 mg/m³
         [11, 61, 145],     # #0B3D91 - 0.05 mg/m³
