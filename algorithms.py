@@ -212,35 +212,61 @@ class ChlorophyllRangeMapper(BaseAlgorithm):
         """Map chlorophyll concentrations to RGB colors based on defined ranges."""
         data = img.array[0]  # Single band input
 
-        # Clamp data to valid range
-        data_clamped = numpy.ma.clip(data, 0.0, self.max_value)
-
         # Create RGB output array
-        height, width = data_clamped.shape
+        height, width = data.shape
         rgb = numpy.zeros((3, height, width), dtype=numpy.uint8)
 
-        # Map each concentration range to its color with smooth interpolation
+        # Identify NoData/NaN pixels BEFORE any processing
+        nodata_mask = None
+
+        # Check for NaN values in the data
+        if numpy.ma.is_masked(data):
+            # Handle masked arrays
+            nodata_mask = data.mask
+            data_valid = data.data  # Get underlying data
+        else:
+            # Check for NaN values manually
+            nodata_mask = numpy.isnan(data)
+
+        # Also check for the image's built-in mask if it exists
+        if hasattr(img, 'mask') and img.mask is not None:
+            if nodata_mask is None:
+                nodata_mask = img.mask[0]
+            else:
+                nodata_mask = nodata_mask | img.mask[0]
+
+        # Clamp only valid data to the range
+        data_clamped = numpy.ma.clip(data, 0.0, self.max_value)
+
+        # Map each concentration range to its color (only for valid pixels)
         for i in range(len(self.breakpoints) - 1):
             min_val = self.breakpoints[i]
             max_val = self.breakpoints[i + 1]
             color_rgb = self.colors_rgb[i]
 
-            # Find pixels in this range
-            mask = (data_clamped >= min_val) & (data_clamped < max_val)
+            # Find pixels in this range AND not NoData
+            if nodata_mask is not None:
+                mask = ((data_clamped >= min_val) & (data_clamped < max_val) & ~nodata_mask)
+            else:
+                mask = (data_clamped >= min_val) & (data_clamped < max_val)
 
             # Apply color to all channels
             for channel in range(3):
                 rgb[channel, mask] = color_rgb[channel]
 
-        # Handle the maximum value
-        max_mask = (data_clamped >= self.breakpoints[-1])
+        # Handle the maximum value (only for valid pixels)
+        if nodata_mask is not None:
+            max_mask = (data_clamped >= self.breakpoints[-1]) & ~nodata_mask
+        else:
+            max_mask = (data_clamped >= self.breakpoints[-1])
+
         for channel in range(3):
             rgb[channel, max_mask] = self.colors_rgb[-1][channel]
 
-        # Handle NoData values (set to transparent)
-        if hasattr(img, 'mask') and img.mask is not None:
+        # Handle NoData values (set to transparent/black)
+        if nodata_mask is not None:
             for channel in range(3):
-                rgb[channel, img.mask[0]] = 0
+                rgb[channel, nodata_mask] = 0
 
         return ImageData(
             rgb,
@@ -311,16 +337,38 @@ class ChlorophyllSmoothMapper(BaseAlgorithm):
         """Map chlorophyll concentrations to RGB colors with smooth interpolation."""
         data = img.array[0]  # Single band input
 
-        # Clamp data to valid range
-        data_clamped = numpy.ma.clip(data, 0.0, self.max_value)
-
         # Create RGB output array
-        height, width = data_clamped.shape
+        height, width = data.shape
         rgb = numpy.zeros((3, height, width), dtype=numpy.uint8)
 
-        # Apply color interpolation to each pixel
+        # Identify NoData/NaN pixels BEFORE any processing
+        nodata_mask = None
+
+        # Check for NaN values in the data
+        if numpy.ma.is_masked(data):
+            # Handle masked arrays
+            nodata_mask = data.mask
+        else:
+            # Check for NaN values manually
+            nodata_mask = numpy.isnan(data)
+
+        # Also check for the image's built-in mask if it exists
+        if hasattr(img, 'mask') and img.mask is not None:
+            if nodata_mask is None:
+                nodata_mask = img.mask[0]
+            else:
+                nodata_mask = nodata_mask | img.mask[0]
+
+        # Clamp only valid data to the range
+        data_clamped = numpy.ma.clip(data, 0.0, self.max_value)
+
+        # Apply color interpolation to each pixel (only for valid pixels)
         for i in range(height):
             for j in range(width):
+                # Skip NoData pixels
+                if nodata_mask is not None and nodata_mask[i, j]:
+                    continue
+
                 if not numpy.ma.is_masked(data_clamped[i, j]):
                     color_rgb = self._interpolate_color(float(data_clamped[i, j]))
                     for channel in range(3):

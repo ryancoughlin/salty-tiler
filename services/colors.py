@@ -59,6 +59,7 @@ SST_COLORS_SALTY_VIBES = [
     '#cf0003', '#be000a', '#ad0011', '#9c0018', '#8b001f'
 ]
 
+# Original linear color scheme (0.00 to 2.00 mg/m³)
 CHLOROPHYLL_COLORS = [
     '#8B3A8B',  # 0.00 mg/m³ - bright indigo/pink mix (ultra-oligotrophic Gulf Stream look)
     '#1a1a4b',  # 0.02 mg/m³ - deep indigo-blue transition
@@ -71,6 +72,37 @@ CHLOROPHYLL_COLORS = [
     '#F1C40F',  # 1.00 mg/m³ - yellow (productive edge)
     '#e6b800',  # 1.50 mg/m³ - yellow-orange
     '#D35400',  # 2.00 mg/m³ - orange-brown (upper end)
+]
+
+# Final optimized chlorophyll color scheme with ultra-smooth transitions
+# Gulf Stream colors for low values, seamless blue→cyan→green→yellow progression
+CHLOROPHYLL_COLORS = [
+    '#8B3A8B',  # 0.00 mg/m³ - Ultra-clear Gulf Stream (purple-pink)
+    '#6B238E',  # 0.01 mg/m³ - Transition
+    '#4B1390',  # 0.02 mg/m³ - Ultra-clear transition
+    '#2D1B69',  # 0.03 mg/m³ - Clear waters start (indigo)
+    '#1a1a4b',  # 0.05 mg/m³ - Deep blue
+    '#0f2a6b',  # 0.07 mg/m³ - Deep blue transition
+    '#0B3D91',  # 0.10 mg/m³ - Medium blue
+    '#0d5bb8',  # 0.15 mg/m³ - Medium blue
+    '#1464F4',  # 0.20 mg/m³ - Bright blue
+    '#1a71e1',  # 0.25 mg/m³ - Blue-cyan transition start
+    '#1e7ee8',  # 0.30 mg/m³ - Blue-cyan
+    '#2b8bc7',  # 0.40 mg/m³ - Blue-cyan
+    '#00B3B3',  # 0.55 mg/m³ - Cyan
+    '#26c4b8',  # 0.70 mg/m³ - Cyan-green transition
+    '#3fd1c7',  # 0.85 mg/m³ - Light cyan
+    '#5ac9c0',  # 1.00 mg/m³ - Light cyan
+    '#7dd8c5',  # 1.15 mg/m³ - Pale cyan
+    '#9de6c9',  # 1.30 mg/m³ - Pale cyan-green
+    '#b8e0b8',  # 1.45 mg/m³ - Pale green
+    '#c8e8a8',  # 1.55 mg/m³ - Green-yellow transition
+    '#d4f0a8',  # 1.65 mg/m³ - Light green-yellow
+    '#e0ec80',  # 1.70 mg/m³ - Green-yellow transition
+    '#e8f080',  # 1.75 mg/m³ - Yellow-green
+    '#F1C40F',  # 1.80 mg/m³ - Yellow
+    '#e6b800',  # 1.95 mg/m³ - Yellow-orange
+    '#D35400',  # 2.00 mg/m³ - Orange
 ]
 
 SALINITY_COLORS = [
@@ -153,7 +185,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     salinity_colormap = create_continuous_colormap(SALINITY_COLORS, 256)
     water_clarity_colormap = create_continuous_colormap(WATER_CLARITY_COLORS, 256)
     mld_colormap = create_continuous_colormap(MLD_COLORS, 256)
-    
+
     # Register custom colormaps
     custom_colormaps = {
         "sst_high_contrast": sst_colormap,
