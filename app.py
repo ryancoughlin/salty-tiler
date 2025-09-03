@@ -23,7 +23,8 @@ from routes.tiles import router as tiles_router
 from services.colors import register_colormaps
 
 # Import custom algorithms
-from algorithms import Log10, Log10Chlorophyll
+from algorithms import (Log10, Log10Chlorophyll, SqrtChlorophyll, GammaChlorophyll,
+                        LinearChlorophyll, ChlorophyllRangeMapper, ChlorophyllSmoothMapper)
 
 
 # Register all colormaps
@@ -36,6 +37,11 @@ from titiler.core.algorithm import Algorithms
 algorithms: Algorithms = default_algorithms.register({
     "log10": Log10,
     "log10_chlorophyll": Log10Chlorophyll,
+    "sqrt_chlorophyll": SqrtChlorophyll,
+    "gamma_chlorophyll": GammaChlorophyll,
+    "linear_chlorophyll": LinearChlorophyll,
+    "chlorophyll_range_mapper": ChlorophyllRangeMapper,
+    "chlorophyll_smooth_mapper": ChlorophyllSmoothMapper,
 })
 
 # Create algorithm dependency
