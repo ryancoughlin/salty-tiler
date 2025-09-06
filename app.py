@@ -13,9 +13,11 @@ import uvicorn
 import os
 from urllib.parse import urlencode, parse_qs, urlparse, urlunparse
 
-# Caching handled by TiTiler's native CacheControlMiddleware
+# Import caching
+from cache import setup_cache, cached
 
-# Custom routes removed - using TiTiler native endpoints only
+# Import routes
+from routes.tiles import router as tiles_router
 
 # Import color service
 from services.colors import register_colormaps
@@ -71,7 +73,8 @@ async def startup_event():
         value = os.getenv(var, "Not set")
         print(f"  {var}={value}")
     
-    # Cache handled by TiTiler's CacheControlMiddleware - no setup needed
+    # Initialize cache (TTL from environment or default)
+    setup_cache()  # Will use CACHE_TTL env var or default to 1 hour
 
 # Configure CORS from environment variables
 cors_origins = os.getenv("CORS_ORIGINS", "*").split(",")
@@ -86,14 +89,13 @@ app.add_middleware(
     allow_headers=cors_headers,
 )
 
-# Add TiTiler's built-in middlewares
+# Add TiTiler's built-in cache control middleware
 try:
-    from titiler.core.middleware import CacheControlMiddleware, TotalTimeMiddleware
+    from titiler.core.middleware import CacheControlMiddleware
     app.add_middleware(CacheControlMiddleware, cachecontrol="public, max-age=86400")
-    app.add_middleware(TotalTimeMiddleware)
-    print("[CACHE] Added CacheControlMiddleware and TotalTimeMiddleware")
+    print("[CACHE] Added CacheControlMiddleware")
 except ImportError:
-    print("[CACHE] TiTiler middlewares not available")
+    print("[CACHE] CacheControlMiddleware not available")
 
 # Create a TilerFactory with the custom colormap, algorithms and all standard endpoints
 from titiler.core.factory import TilerFactory
@@ -105,7 +107,18 @@ cog = TilerFactory(
     add_viewer=True,
 )
 
-# Custom caching removed - using TiTiler's native CacheControlMiddleware
+# Apply caching to tile routes after they're registered
+def apply_caching_to_routes():
+    """Apply caching to tile routes after they're registered."""
+    for route in cog.router.routes:
+        if hasattr(route, 'path') and '/tiles/' in route.path and hasattr(route, 'endpoint'):
+            # Wrap the endpoint with caching
+            original_endpoint = route.endpoint
+            route.endpoint = cached(alias="default")(original_endpoint)
+            print(f"[CACHE] Applied caching to route: {route.path}")
+
+# Apply caching to routes
+apply_caching_to_routes()
 
 # Create a ColorMapFactory to expose colormap discovery endpoints
 colormap_factory = ColorMapFactory(supported_colormaps=cmap)
@@ -116,7 +129,8 @@ app.include_router(cog.router, prefix="/cog", tags=["Cloud Optimized GeoTIFF"])
 # Include the colormap router - this creates /colormaps endpoints
 app.include_router(colormap_factory.router, tags=["ColorMaps"])
 
-# Custom routers removed - using TiTiler native endpoints only
+# Register application-specific routers
+app.include_router(tiles_router)
 
 # Health check endpoint for Docker
 @app.get("/health")
