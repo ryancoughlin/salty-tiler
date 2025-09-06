@@ -158,4 +158,4 @@ def render_tile(
     print(f"[CACHE] {cache_status}: {url_type} {path} z={z} x={x} y={y} min={min_value} max={max_value} scale={scale_type} expr={expression}")
     if key not in _seen_cache_keys:
         _seen_cache_keys.add(key)
-    return _render_tile_cached(path, z, x, y, min_value, max_value, colormap_serialized, colormap_name, colormap_bins, expression) 
+    return _render_tile_cached(path, z, x, y, min_value, max_value, colormap_name, colormap_bins, expression) 
