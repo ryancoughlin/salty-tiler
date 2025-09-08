@@ -1,11 +1,10 @@
-"""Cache Plugin for TiTiler.
+"""Cache Plugin following TiTiler official documentation.
 
-Provides in-memory caching using aiocache.SimpleMemoryCache.
-Based on TiTiler's caching example but simplified for in-memory only.
+Based on: https://developmentseed.org/titiler/examples/code/tiler_with_cache/
 """
 
 import asyncio
-import os
+import urllib
 from typing import Any, Dict
 
 import aiocache
@@ -13,15 +12,16 @@ from starlette.concurrency import run_in_threadpool
 from starlette.responses import Response
 from fastapi.dependencies.utils import is_coroutine_callable
 
+from cache_settings import cache_setting
+
 
 class cached(aiocache.cached):
-    """Custom Cached Decorator that supports both async and sync methods."""
+    """Custom Cached Decorator following TiTiler official example."""
 
     async def get_from_cache(self, key):
         try:
             value = await self.cache.get(key)
             if isinstance(value, Response):
-                # Add cache hit header
                 value.headers["X-Cache"] = "HIT"
             return value
         except Exception:
@@ -64,22 +64,37 @@ class cached(aiocache.cached):
         return result
 
 
-def setup_cache(ttl: int = None):
-    """Setup aiocache with in-memory cache.
-    
-    Args:
-        ttl: Time to live in seconds (default: from CACHE_TTL env or 1 hour)
-    """
-    # Use environment variable or provided TTL or default to 1 hour
-    if ttl is None:
-        ttl = int(os.getenv("CACHE_TTL", "3600"))
+def setup_cache():
+    """Setup aiocache following TiTiler official example."""
     config: Dict[str, Any] = {
         'cache': "aiocache.SimpleMemoryCache",
         'serializer': {
             'class': "aiocache.serializers.PickleSerializer"
-        },
-        'ttl': ttl,
+        }
     }
-    
+    if cache_setting.ttl is not None:
+        config["ttl"] = cache_setting.ttl
+
+    if cache_setting.endpoint:
+        url = urllib.parse.urlparse(cache_setting.endpoint)
+        url_config = dict(urllib.parse.parse_qsl(url.query))
+        config.update(url_config)
+
+        cache_class = aiocache.Cache.get_scheme_class(url.scheme)
+        config.update(cache_class.parse_uri_path(url.path))
+        config["endpoint"] = url.hostname
+        config["port"] = str(url.port)
+
+        if cache_setting.namespace != "":
+            config["namespace"] = cache_setting.namespace
+
+        if url.password:
+            config["password"] = url.password
+
+        if cache_class == aiocache.Cache.REDIS:
+            config["cache"] = "aiocache.RedisCache"
+        elif cache_class == aiocache.Cache.MEMCACHED:
+            config["cache"] = "aiocache.MemcachedCache"
+
     aiocache.caches.set_config({"default": config})
-    print(f"[CACHE] Initialized in-memory cache with TTL={ttl}s")
+    print(f"[CACHE] Initialized cache with TTL={cache_setting.ttl}s, endpoint={cache_setting.endpoint or 'memory'}")

@@ -8,8 +8,10 @@ services:
       - TILER_HOST=0.0.0.0
       - TILER_PORT=8001
       - COG_BASE_URL=https://data.saltyoffshore.com
-      # Cache configuration
+      # Cache configuration (TiTiler official pattern)
       - CACHE_TTL=86400
+      # Optional: Redis cache endpoint (uncomment to use Redis)
+      # - CACHE_ENDPOINT=redis://redis:6379/0
       # GDAL optimizations (can override Dockerfile defaults)
       - VSI_CACHE_SIZE=50000000
       - GDAL_CACHEMAX=200

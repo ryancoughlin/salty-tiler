@@ -14,7 +14,7 @@ import os
 from urllib.parse import urlencode, parse_qs, urlparse, urlunparse
 
 # Import caching
-from cache import setup_cache, cached
+from cache_plugin import setup_cache, cached
 
 # Import routes
 from routes.tiles import router as tiles_router
@@ -107,9 +107,9 @@ cog = TilerFactory(
     add_viewer=True,
 )
 
-# Apply caching to tile routes after they're registered
-def apply_caching_to_routes():
-    """Apply caching to tile routes after they're registered."""
+# Apply caching to tile routes using TiTiler's recommended approach
+def apply_caching_to_tile_routes():
+    """Apply caching to tile routes following TiTiler best practices."""
     for route in cog.router.routes:
         if hasattr(route, 'path') and '/tiles/' in route.path and hasattr(route, 'endpoint'):
             # Wrap the endpoint with caching
@@ -117,8 +117,8 @@ def apply_caching_to_routes():
             route.endpoint = cached(alias="default")(original_endpoint)
             print(f"[CACHE] Applied caching to route: {route.path}")
 
-# Apply caching to routes
-apply_caching_to_routes()
+# Apply caching after routes are registered
+apply_caching_to_tile_routes()
 
 # Create a ColorMapFactory to expose colormap discovery endpoints
 colormap_factory = ColorMapFactory(supported_colormaps=cmap)

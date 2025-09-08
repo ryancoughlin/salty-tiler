@@ -77,6 +77,7 @@ def _render_tile_cached(
     y: int,
     min_value: float,
     max_value: float,
+    colormap_serialized: str,
     colormap_name: Optional[str] = None,
     colormap_bins: int = 256,
     expression: str = "b1",
@@ -90,13 +91,11 @@ def _render_tile_cached(
         path: Path or URL to the COG file
         z, x, y: Tile coordinates
         min_value, max_value: Scale range for colormap
+        colormap_serialized: Serialized colormap for cache key
         colormap_name: Named colormap registered in app
         colormap_bins: Number of colormap bins
-        use_log_scale: Apply logarithmic scaling for chlorophyll data
+        expression: TiTiler expression for data transformation
     """
-    # Apply logarithmic scaling for chlorophyll data to match visualizer
-    if use_log_scale:
-        min_value, max_value = _apply_chlorophyll_scaling(min_value, max_value)
     
     kwargs = {
         "path": path,
