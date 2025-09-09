@@ -65,16 +65,35 @@ class cached(aiocache.cached):
 
 
 def setup_cache():
-    """Setup aiocache following TiTiler official example."""
+    """Setup aiocache with Redis or memory backend."""
     config: Dict[str, Any] = {
-        'cache': "aiocache.SimpleMemoryCache",
         'serializer': {
             'class': "aiocache.serializers.PickleSerializer"
         }
     }
+    
     if cache_setting.ttl is not None:
         config["ttl"] = cache_setting.ttl
+    
+    if cache_setting.namespace:
+        config["namespace"] = cache_setting.namespace
 
+    # Configure cache backend based on settings
+    if cache_setting.cache_type == "redis":
+        config.update({
+            'cache': "aiocache.RedisCache",
+            'endpoint': cache_setting.redis_host,
+            'port': cache_setting.redis_port,
+            'db': cache_setting.redis_db,
+        })
+        if cache_setting.redis_password:
+            config["password"] = cache_setting.redis_password
+        backend_info = f"Redis at {cache_setting.redis_host}:{cache_setting.redis_port}/{cache_setting.redis_db}"
+    else:
+        config['cache'] = "aiocache.SimpleMemoryCache"
+        backend_info = "in-memory"
+
+    # Handle legacy endpoint configuration if provided
     if cache_setting.endpoint:
         url = urllib.parse.urlparse(cache_setting.endpoint)
         url_config = dict(urllib.parse.parse_qsl(url.query))
@@ -85,9 +104,6 @@ def setup_cache():
         config["endpoint"] = url.hostname
         config["port"] = str(url.port)
 
-        if cache_setting.namespace != "":
-            config["namespace"] = cache_setting.namespace
-
         if url.password:
             config["password"] = url.password
 
@@ -95,6 +111,8 @@ def setup_cache():
             config["cache"] = "aiocache.RedisCache"
         elif cache_class == aiocache.Cache.MEMCACHED:
             config["cache"] = "aiocache.MemcachedCache"
+        
+        backend_info = f"endpoint {cache_setting.endpoint}"
 
     aiocache.caches.set_config({"default": config})
-    print(f"[CACHE] Initialized cache with TTL={cache_setting.ttl}s, endpoint={cache_setting.endpoint or 'memory'}")
+    print(f"[CACHE] Initialized {backend_info} cache with TTL={cache_setting.ttl}s, namespace='{cache_setting.namespace}'")

@@ -107,18 +107,7 @@ cog = TilerFactory(
     add_viewer=True,
 )
 
-# Apply caching to tile routes using TiTiler's recommended approach
-def apply_caching_to_tile_routes():
-    """Apply caching to tile routes following TiTiler best practices."""
-    for route in cog.router.routes:
-        if hasattr(route, 'path') and '/tiles/' in route.path and hasattr(route, 'endpoint'):
-            # Wrap the endpoint with caching
-            original_endpoint = route.endpoint
-            route.endpoint = cached(alias="default")(original_endpoint)
-            print(f"[CACHE] Applied caching to route: {route.path}")
-
-# Apply caching after routes are registered
-apply_caching_to_tile_routes()
+# Note: Caching is now applied directly to specific tile endpoints in routes/tiles.py
 
 # Create a ColorMapFactory to expose colormap discovery endpoints
 colormap_factory = ColorMapFactory(supported_colormaps=cmap)
