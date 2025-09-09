@@ -16,7 +16,7 @@ services:
       - TILER_PORT=8001
       - COG_BASE_URL=https://data.saltyoffshore.com
       # Redis cache configuration
-      - CACHE_TYPE=redis
+      - CACHE_CACHE_TYPE=redis
       - CACHE_TTL=86400
       - CACHE_REDIS_HOST=redis
       - CACHE_REDIS_PORT=6379
