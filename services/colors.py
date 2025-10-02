@@ -137,6 +137,22 @@ MLD_COLORS = [
     '#f44336',  # bright red-orange (deep MLD)c
 ]
 
+# Water Movement color scale - Deep blue to red gradient for SSH visualization
+SSH_COLORS = [
+    "#053061", "#0a3666", "#0f3d6c",
+    "#B2E5F4", "#bae7f3", "#c1e9f2",
+    "#c6dbef", "#cdddf0", "#d3dff1",
+    "#d9e6f2", "#e0e9f3", "#e7ecf4",
+    "#e5eef4", "#edf1f6", "#f0f5f7",
+    "#f2f2f1", "#f3efeb", "#f5ebe6",
+    "#f4e7df", "#f3e3d9", "#f3e0d4",
+    "#f2d9c8", "#f1d1bc", "#f0c5ac",
+    "#ecb399", "#e8a086", "#e48d73",
+    "#dd7960", "#d66552", "#d15043",
+    "#cb3e36", "#c52828", "#bf1f1f",
+    "#b81717", "#b01010", "#a80808"
+]
+
 
 def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> Dict[int, Tuple[int, int, int, int]]:
     """Create a continuous colormap by interpolating between colors in the list."""
@@ -185,6 +201,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     salinity_colormap = create_continuous_colormap(SALINITY_COLORS, 256)
     water_clarity_colormap = create_continuous_colormap(WATER_CLARITY_COLORS, 256)
     mld_colormap = create_continuous_colormap(MLD_COLORS, 256)
+    ssh_colormap = create_continuous_colormap(SSH_COLORS, 256)
 
     # Register custom colormaps
     custom_colormaps = {
@@ -193,7 +210,8 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
         "chlorophyll": chlorophyll_colormap,
         "salinity": salinity_colormap,
         "water_clarity": water_clarity_colormap,
-        "mld_default": mld_colormap
+        "mld_default": mld_colormap,
+        "ssh": ssh_colormap
     }
     
     return custom_colormaps
