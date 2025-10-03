@@ -153,6 +153,27 @@ SSH_COLORS = [
     "#b81717", "#b01010", "#a80808"
 ]
 
+# Currents color scale - Deep navy to red gradient for ocean current visualization
+CURRENT_COLORS = [
+    # Very slow/calm (0.0-0.1 knots) - deep navy for minimal current
+    '#000814', '#001d3d', '#003566',
+    
+    # Slow currents (0.1-0.5 knots) - deep blues with clear progression
+    '#0353a4', '#1e6091', '#2a6f97',
+    
+    # Moderate currents (0.5-1.5 knots) - distinct blue to teal transition
+    '#2a9d8f', '#00b4d8', '#0096c7',
+    
+    # Strong currents (1.5-3.0 knots) - bright cyan to green transition
+    '#00ced1', '#20b2aa', '#32cd32',
+    
+    # Very strong currents (3.0-5.0 knots) - green to yellow transition
+    '#9acd32', '#ffd700', '#ffa500',
+    
+    # Extreme currents (5.0+ knots) - orange to red alerts
+    '#ff6347', '#ff4500', '#dc143c', '#b22222'
+]
+
 
 def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> Dict[int, Tuple[int, int, int, int]]:
     """Create a continuous colormap by interpolating between colors in the list."""
@@ -202,6 +223,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     water_clarity_colormap = create_continuous_colormap(WATER_CLARITY_COLORS, 256)
     mld_colormap = create_continuous_colormap(MLD_COLORS, 256)
     ssh_colormap = create_continuous_colormap(SSH_COLORS, 256)
+    currents_colormap = create_continuous_colormap(CURRENT_COLORS, 256)
 
     # Register custom colormaps
     custom_colormaps = {
@@ -211,7 +233,8 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
         "salinity": salinity_colormap,
         "water_clarity": water_clarity_colormap,
         "mld_default": mld_colormap,
-        "ssh": ssh_colormap
+        "ssh": ssh_colormap,
+        "currents": currents_colormap
     }
     
     return custom_colormaps
