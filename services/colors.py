@@ -153,16 +153,16 @@ SSH_COLORS = [
     "#b81717", "#b01010", "#a80808"
 ]
 
-# Currents color scale - Deep navy to red gradient for ocean current visualization
+# Currents color scale - Light blue to red gradient for ocean current visualization
 CURRENT_COLORS = [
-    # Very slow/calm (0.0-0.1 knots) - deep navy for minimal current
-    '#000814', '#001d3d', '#003566',
+    # Very slow/calm (0.0-0.1 knots) - light blue for bathymetry visibility
+    '#e6f3ff', '#cce7ff', '#b3dbff',
     
-    # Slow currents (0.1-0.5 knots) - deep blues with clear progression
-    '#0353a4', '#1e6091', '#2a6f97',
+    # Slow currents (0.1-0.5 knots) - light to medium blues
+    '#99cfff', '#80c3ff', '#66b7ff',
     
     # Moderate currents (0.5-1.5 knots) - distinct blue to teal transition
-    '#2a9d8f', '#00b4d8', '#0096c7',
+    '#4dabff', '#339fff', '#1a93ff',
     
     # Strong currents (1.5-3.0 knots) - bright cyan to green transition
     '#00ced1', '#20b2aa', '#32cd32',
