@@ -2,6 +2,7 @@ pydantic>=2.0.0
 pydantic-settings>=2.0.0
 fastapi>=0.116.1
 uvicorn>=0.35.0
+gunicorn>=21.2.0
 titiler-core>=0.22.4
 rio-tiler>=7.8.1
 rio-cogeo>=5.4.2

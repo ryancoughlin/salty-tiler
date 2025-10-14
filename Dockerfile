@@ -83,4 +83,4 @@ EXPOSE 8001
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Run the application
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "4"] 
+CMD ["gunicorn", "app:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8001"] 

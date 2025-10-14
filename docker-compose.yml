@@ -14,6 +14,7 @@ services:
     environment:
       - TILER_HOST=0.0.0.0
       - TILER_PORT=8001
+      - WORKERS=4
       - COG_BASE_URL=https://data.saltyoffshore.com
       # Redis cache configuration
       - CACHE_CACHE_TYPE=redis
