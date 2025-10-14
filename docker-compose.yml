@@ -34,8 +34,10 @@ services:
       resources:
         limits:
           memory: 4G
+          cpus: "4.0"
         reservations:
           memory: 512M
+          cpus: "1.0"
     depends_on:
       - redis
     restart: unless-stopped
