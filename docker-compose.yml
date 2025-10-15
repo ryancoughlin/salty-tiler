@@ -1,13 +1,6 @@
 version: "3.8"
 
 services:
-  redis:
-    image: redis:7-alpine
-    container_name: salty-tiler-redis
-    restart: unless-stopped
-    networks:
-      - salty_network
-
   salty-tiler:
     build: .
     container_name: salty-tiler
@@ -16,12 +9,9 @@ services:
       - TILER_PORT=8001
       - WORKERS=4
       - COG_BASE_URL=https://data.saltyoffshore.com
-      # Redis cache configuration
-      - CACHE_CACHE_TYPE=redis
+      # Cache configuration (using memory cache)
+      - CACHE_CACHE_TYPE=memory
       - CACHE_TTL=86400
-      - CACHE_REDIS_HOST=redis
-      - CACHE_REDIS_PORT=6379
-      - CACHE_REDIS_DB=0
       - CACHE_NAMESPACE=salty-tiler
       # GDAL optimizations (can override Dockerfile defaults)
       - VSI_CACHE_SIZE=50000000
@@ -39,8 +29,6 @@ services:
         reservations:
           memory: 512M
           cpus: "1.0"
-    depends_on:
-      - redis
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
