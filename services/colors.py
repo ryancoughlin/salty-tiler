@@ -153,25 +153,50 @@ SSH_COLORS = [
     "#b81717", "#b01010", "#a80808"
 ]
 
+# Bathymetry color scale - Deep blues to light blues for depth visualization
+# Negative values (deeper) = darker blues, positive values (shallower) = lighter blues
+BATHYMETRY_COLORS = [
+    # Deepest depths (darkest blues)
+    '#0a0a2e', '#16213e', '#1e2749', '#2c3e50', '#34495e',
+    '#2c3e50', '#34495e', '#3c4f6a', '#445f76', '#4c6f82',
+    
+    # Mid-depths (medium blues)
+    '#547f8e', '#5c8f9a', '#649fa6', '#6cafb2', '#74bfbe',
+    '#7ccfca', '#84dfd6', '#8cefe2', '#94ffee', '#9cfffa',
+    
+    # Shallow depths (light blues to cyan)
+    '#a4ffff', '#acffff', '#b4ffff', '#bcffff', '#c4ffff',
+    '#ccffff', '#d4ffff', '#dcffff', '#e4ffff', '#ecffff',
+    
+    # Very shallow (white to light blue)
+    '#f4ffff', '#fcffff', '#ffffff', '#f8f8ff', '#f0f0ff',
+    '#e8e8ff', '#e0e0ff', '#d8d8ff', '#d0d0ff', '#c8c8ff',
+    
+    # Above sea level (land - light browns)
+    '#c0c0ff', '#b8b8ff', '#b0b0ff', '#a8a8ff', '#a0a0ff',
+    '#9898ff', '#9090ff', '#8888ff', '#8080ff', '#7878ff'
+]
+
 # Currents color scale - Light blue to red gradient for ocean current visualization
-CURRENT_COLORS = [
-    # Very slow/calm (0.0-0.1 knots) - light blue for bathymetry visibility
-    '#e6f3ff', '#cce7ff', '#b3dbff',
-    
-    # Slow currents (0.1-0.5 knots) - light to medium blues
-    '#99cfff', '#80c3ff', '#66b7ff',
-    
-    # Moderate currents (0.5-1.5 knots) - distinct blue to teal transition
-    '#4dabff', '#339fff', '#1a93ff',
-    
-    # Strong currents (1.5-3.0 knots) - bright cyan to green transition
-    '#00ced1', '#20b2aa', '#32cd32',
-    
-    # Very strong currents (3.0-5.0 knots) - green to yellow transition
-    '#9acd32', '#ffd700', '#ffa500',
-    
-    # Extreme currents (5.0+ knots) - orange to red alerts
-    '#ff6347', '#ff4500', '#dc143c', '#b22222'
+from typing import Final
+
+CURRENT_COLORS: Final[list[str]] = [
+    # Dead zones/back eddies (30%) - more colors here
+    '#000a1a', '#001428', '#001e36', '#002844',
+    '#003252', '#003c60', '#00466e', '#00507c',
+    '#005a8a', '#006498', '#006ea6', '#0078b4',
+
+    # Weak to moderate flow (35%)
+    '#0082c2', '#008cd0', '#0096de', '#00a0ec',
+    '#10a8f0', '#28b0f0', '#40b8ed', '#58c0e8',
+    '#70c8e0', '#85ccd8', '#98d0cc', '#aad4c0',
+    '#bcd8b0', '#cedca0',
+
+    # Strong currents (35%)
+    '#e0e090', '#eedc70', '#f8d050', '#ffc430',
+    '#ffb810', '#ffaa00', '#ff9c00', '#ff8e00',
+    '#ff7700', '#ff6600', '#ff5500', '#ff3300',
+    '#ee1100', '#cc0000'
 ]
 
 
@@ -224,6 +249,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     mld_colormap = create_continuous_colormap(MLD_COLORS, 256)
     ssh_colormap = create_continuous_colormap(SSH_COLORS, 256)
     currents_colormap = create_continuous_colormap(CURRENT_COLORS, 256)
+    bathymetry_colormap = create_continuous_colormap(BATHYMETRY_COLORS, 256)
 
     # Register custom colormaps
     custom_colormaps = {
@@ -234,7 +260,8 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
         "water_clarity": water_clarity_colormap,
         "mld_default": mld_colormap,
         "ssh": ssh_colormap,
-        "currents": currents_colormap
+        "currents": currents_colormap,
+        "bathymetry": bathymetry_colormap
     }
     
     return custom_colormaps
