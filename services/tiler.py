@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional
 from titiler.core.factory import TilerFactory
+from titiler.mosaic.factory import MosaicTilerFactory
 from titiler.core.resources.enums import ImageType
 from functools import lru_cache
 import json
@@ -10,6 +11,9 @@ from collections import defaultdict
 
 # TilerFactory instance with bilinear resampling
 cog_tiler = TilerFactory()
+
+# MosaicTilerFactory instance for MosaicJSON support
+mosaic_tiler = MosaicTilerFactory()
 
 # Simple set to track seen cache keys for hit/miss logging (dev only)
 _seen_cache_keys = set()
@@ -158,3 +162,107 @@ def render_tile(
     if key not in _seen_cache_keys:
         _seen_cache_keys.add(key)
     return _render_tile_cached(path, z, x, y, min_value, max_value, colormap_serialized, colormap_name, colormap_bins, expression) 
+
+@lru_cache(maxsize=int(os.getenv("MOSAIC_CACHE_SIZE", "512")))
+def _render_mosaic_tile_cached(
+    mosaic_url: str,
+    z: int,
+    x: int,
+    y: int,
+    min_value: float,
+    max_value: float,
+    colormap_name: Optional[str] = None,
+    colormap_bins: int = 256,
+    resampling: str = "bilinear",
+) -> bytes:
+    """
+    Render a PNG tile from a MosaicJSON using TiTiler.
+    Returns PNG bytes. Uses LRU cache for performance.
+    
+    Args:
+        mosaic_url: URL to MosaicJSON file
+        z, x, y: Tile coordinates
+        min_value, max_value: Scale range for colormap
+        colormap_name: Named colormap registered in app
+        colormap_bins: Number of colormap bins
+        resampling: Resampling method
+    """
+    
+    kwargs = {
+        "path": mosaic_url,
+        "tile_format": ImageType.png,
+        "scale_range": [min_value, max_value],
+        "colormap_bins": colormap_bins,
+        "resampling_method": resampling,
+        "z": z, "x": x, "y": y
+    }
+    
+    # Use named colormap
+    if colormap_name:
+        kwargs["colormap_name"] = colormap_name
+        
+    return mosaic_tiler.render(**kwargs)
+
+def render_mosaic_tile(
+    mosaic_url: str,
+    z: int,
+    x: int,
+    y: int,
+    min_value: float,
+    max_value: float,
+    colormap_name: Optional[str] = None,
+    colormap_bins: int = 256,
+    resampling: str = "bilinear",
+) -> bytes:
+    """
+    Render a PNG tile from a MosaicJSON using TiTiler.
+    Returns PNG bytes. Uses in-memory LRU cache for speed.
+    
+    Args:
+        mosaic_url: URL to MosaicJSON file
+        z, x, y: Tile coordinates
+        min_value, max_value: Scale range for colormap
+        colormap_name: Named colormap registered in app
+        colormap_bins: Number of colormap bins
+        resampling: Resampling method
+    """
+    print(f"[MOSAIC] Rendering tile z={z} x={x} y={y} from {mosaic_url} range={min_value},{max_value}")
+    return _render_mosaic_tile_cached(mosaic_url, z, x, y, min_value, max_value, colormap_name, colormap_bins, resampling)
+
+@lru_cache(maxsize=int(os.getenv("POINT_CACHE_SIZE", "1024")))
+def _query_mosaic_point_cached(
+    mosaic_url: str,
+    lon: float,
+    lat: float,
+) -> Dict[str, Any]:
+    """
+    Query a point value from a MosaicJSON using TiTiler.
+    Returns point data with values.
+    
+    Args:
+        mosaic_url: URL to MosaicJSON file
+        lon, lat: Longitude and latitude coordinates
+    """
+    
+    kwargs = {
+        "path": mosaic_url,
+        "coordinates": [lon, lat],
+    }
+        
+    return mosaic_tiler.point(**kwargs)
+
+def query_mosaic_point(
+    mosaic_url: str,
+    lon: float,
+    lat: float,
+) -> Dict[str, Any]:
+    """
+    Query a point value from a MosaicJSON using TiTiler.
+    Returns point data with values.
+    
+    Args:
+        mosaic_url: URL to MosaicJSON file
+        lon, lat: Longitude and latitude coordinates
+    """
+    print(f"[MOSAIC] Querying point {lon},{lat} from {mosaic_url}")
+    return _query_mosaic_point_cached(mosaic_url, lon, lat) 
