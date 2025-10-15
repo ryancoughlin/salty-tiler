@@ -188,20 +188,23 @@ def _render_mosaic_tile_cached(
         resampling: Resampling method
     """
     
+    # Use the mosaic tiler's tile method with proper parameters
     kwargs = {
-        "path": mosaic_url,
-        "tile_format": ImageType.png,
-        "scale_range": [min_value, max_value],
+        "url": mosaic_url,
+        "z": z, 
+        "x": x, 
+        "y": y,
+        "format": ImageType.png,
+        "rescale": f"{min_value},{max_value}",
+        "resampling": resampling,
         "colormap_bins": colormap_bins,
-        "resampling_method": resampling,
-        "z": z, "x": x, "y": y
     }
     
     # Use named colormap
     if colormap_name:
         kwargs["colormap_name"] = colormap_name
         
-    return mosaic_tiler.render(**kwargs)
+    return mosaic_tiler.tile(**kwargs)
 
 def render_mosaic_tile(
     mosaic_url: str,
@@ -245,8 +248,8 @@ def _query_mosaic_point_cached(
     """
     
     kwargs = {
-        "path": mosaic_url,
-        "coordinates": [lon, lat],
+        "url": mosaic_url,
+        "coordinates": f"{lon},{lat}",
     }
         
     return mosaic_tiler.point(**kwargs)
