@@ -22,6 +22,9 @@ from routes.tiles import router as tiles_router
 # Import color service
 from services.colors import register_colormaps
 
+# Import MosaicJSON support
+from titiler.mosaic.factory import MosaicTilerFactory
+
 # Import custom algorithms
 from algorithms import (Log10, Log10Chlorophyll, SqrtChlorophyll, GammaChlorophyll,
                         LinearChlorophyll, ChlorophyllRangeMapper, ChlorophyllSmoothMapper)
@@ -107,6 +110,9 @@ cog = TilerFactory(
     add_viewer=True,
 )
 
+# Create MosaicTilerFactory with custom colormaps
+mosaic = MosaicTilerFactory(colormap_dependency=ColorMapParams)
+
 # Import the tiler factory from services
 from services.tiler import cog_tiler
 
@@ -118,7 +124,8 @@ colormap_factory = ColorMapFactory(supported_colormaps=cmap)
 # Include the router with "/cog" prefix - this creates /cog/{z}/{x}/{y} routes
 app.include_router(cog.router, prefix="/cog", tags=["Cloud Optimized GeoTIFF"])
 
-# Note: MosaicJSON router removed as it's not currently implemented
+# Include the mosaic router with "/mosaicjson" prefix - this creates /mosaicjson/{z}/{x}/{y} routes
+app.include_router(mosaic.router, prefix="/mosaicjson", tags=["MosaicJSON"])
 
 # Include the colormap router - this creates /colormaps endpoints
 app.include_router(colormap_factory.router, tags=["ColorMaps"])
