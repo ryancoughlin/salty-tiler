@@ -108,9 +108,8 @@ cog = TilerFactory(
     add_viewer=True,
 )
 
-# Create a MosaicJSON factory for bathymetry mosaics
-from titiler.mosaic.factory import MosaicTilerFactory
-mosaic = MosaicTilerFactory()
+# Import the mosaic factory from services
+from services.tiler import mosaic_tiler as mosaic
 
 # Note: Caching is now applied directly to specific tile endpoints in routes/tiles.py
 
