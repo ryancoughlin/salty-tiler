@@ -1,6 +1,5 @@
 from typing import Any, Dict, Optional
 from titiler.core.factory import TilerFactory
-from titiler.mosaic.factory import MosaicTilerFactory
 from titiler.core.resources.enums import ImageType
 from functools import lru_cache
 import json
@@ -9,11 +8,15 @@ import numpy as np
 import time
 from collections import defaultdict
 
-# TilerFactory instance with bilinear resampling
-cog_tiler = TilerFactory()
+# Import colormap registration
+from services.colors import register_colormaps
 
-# MosaicTilerFactory instance for MosaicJSON support
-mosaic_tiler = MosaicTilerFactory()
+# Register colormaps and get the dependency
+ColorMapParams, cmap = register_colormaps()
+
+# TilerFactory instance with bilinear resampling and custom colormaps
+cog_tiler = TilerFactory(colormap_dependency=ColorMapParams)
+
 
 # Simple set to track seen cache keys for hit/miss logging (dev only)
 _seen_cache_keys = set()
@@ -163,121 +166,3 @@ def render_tile(
         _seen_cache_keys.add(key)
     return _render_tile_cached(path, z, x, y, min_value, max_value, colormap_serialized, colormap_name, colormap_bins, expression) 
 
-@lru_cache(maxsize=int(os.getenv("MOSAIC_CACHE_SIZE", "512")))
-def _render_mosaic_tile_cached(
-    mosaic_url: str,
-    z: int,
-    x: int,
-    y: int,
-    min_value: float,
-    max_value: float,
-    colormap_name: Optional[str] = None,
-    colormap_bins: int = 256,
-    resampling: str = "bilinear",
-) -> bytes:
-    """
-    Render a PNG tile from a MosaicJSON using TiTiler.
-    Returns PNG bytes. Uses LRU cache for performance.
-    
-    Args:
-        mosaic_url: URL to MosaicJSON file
-        z, x, y: Tile coordinates
-        min_value, max_value: Scale range for colormap
-        colormap_name: Named colormap registered in app
-        colormap_bins: Number of colormap bins
-        resampling: Resampling method
-    """
-    import requests
-    
-    # Build the TiTiler mosaic endpoint URL
-    base_url = "http://127.0.0.1:8001"  # This should be configurable
-    endpoint = f"{base_url}/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}.png"
-    
-    params = {
-        "url": mosaic_url,
-        "rescale": f"{min_value},{max_value}",
-        "resampling": resampling,
-        "colormap_bins": colormap_bins,
-    }
-    
-    # Use named colormap
-    if colormap_name:
-        params["colormap_name"] = colormap_name
-    
-    # Make request to TiTiler mosaic endpoint
-    response = requests.get(endpoint, params=params, timeout=30)
-    response.raise_for_status()
-    
-    return response.content
-
-def render_mosaic_tile(
-    mosaic_url: str,
-    z: int,
-    x: int,
-    y: int,
-    min_value: float,
-    max_value: float,
-    colormap_name: Optional[str] = None,
-    colormap_bins: int = 256,
-    resampling: str = "bilinear",
-) -> bytes:
-    """
-    Render a PNG tile from a MosaicJSON using TiTiler.
-    Returns PNG bytes. Uses in-memory LRU cache for speed.
-    
-    Args:
-        mosaic_url: URL to MosaicJSON file
-        z, x, y: Tile coordinates
-        min_value, max_value: Scale range for colormap
-        colormap_name: Named colormap registered in app
-        colormap_bins: Number of colormap bins
-        resampling: Resampling method
-    """
-    print(f"[MOSAIC] Rendering tile z={z} x={x} y={y} from {mosaic_url} range={min_value},{max_value}")
-    return _render_mosaic_tile_cached(mosaic_url, z, x, y, min_value, max_value, colormap_name, colormap_bins, resampling)
-
-@lru_cache(maxsize=int(os.getenv("POINT_CACHE_SIZE", "1024")))
-def _query_mosaic_point_cached(
-    mosaic_url: str,
-    lon: float,
-    lat: float,
-) -> Dict[str, Any]:
-    """
-    Query a point value from a MosaicJSON using TiTiler.
-    Returns point data with values.
-    
-    Args:
-        mosaic_url: URL to MosaicJSON file
-        lon, lat: Longitude and latitude coordinates
-    """
-    import requests
-    
-    # Build the TiTiler mosaic point endpoint URL
-    base_url = "http://127.0.0.1:8001"  # This should be configurable
-    endpoint = f"{base_url}/mosaicjson/point/{lon},{lat}"
-    
-    params = {
-        "url": mosaic_url,
-    }
-    
-    # Make request to TiTiler mosaic endpoint
-    response = requests.get(endpoint, params=params, timeout=30)
-    response.raise_for_status()
-    
-    return response.json()
-
-def query_mosaic_point(
-    mosaic_url: str,
-    lon: float,
-    lat: float,
-) -> Dict[str, Any]:
-    """
-    Query a point value from a MosaicJSON using TiTiler.
-    Returns point data with values.
-    
-    Args:
-        mosaic_url: URL to MosaicJSON file
-        lon, lat: Longitude and latitude coordinates
-    """
-    print(f"[MOSAIC] Querying point {lon},{lat} from {mosaic_url}")
-    return _query_mosaic_point_cached(mosaic_url, lon, lat) 
