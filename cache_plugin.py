@@ -4,7 +4,6 @@ Based on: https://developmentseed.org/titiler/examples/code/tiler_with_cache/
 """
 
 import asyncio
-import urllib
 from typing import Any, Dict
 
 import aiocache
@@ -65,54 +64,15 @@ class cached(aiocache.cached):
 
 
 def setup_cache():
-    """Setup aiocache with Redis or memory backend."""
+    """Setup aiocache with in-memory backend."""
     config: Dict[str, Any] = {
+        'cache': "aiocache.SimpleMemoryCache",
         'serializer': {
             'class': "aiocache.serializers.PickleSerializer"
-        }
+        },
+        'ttl': cache_setting.ttl,
+        'namespace': cache_setting.namespace
     }
-    
-    if cache_setting.ttl is not None:
-        config["ttl"] = cache_setting.ttl
-    
-    if cache_setting.namespace:
-        config["namespace"] = cache_setting.namespace
-
-    # Configure cache backend based on settings
-    if cache_setting.cache_type == "redis":
-        config.update({
-            'cache': "aiocache.RedisCache",
-            'endpoint': cache_setting.redis_host,
-            'port': cache_setting.redis_port,
-            'db': cache_setting.redis_db,
-        })
-        if cache_setting.redis_password:
-            config["password"] = cache_setting.redis_password
-        backend_info = f"Redis at {cache_setting.redis_host}:{cache_setting.redis_port}/{cache_setting.redis_db}"
-    else:
-        config['cache'] = "aiocache.SimpleMemoryCache"
-        backend_info = "in-memory"
-
-    # Handle legacy endpoint configuration if provided
-    if cache_setting.endpoint:
-        url = urllib.parse.urlparse(cache_setting.endpoint)
-        url_config = dict(urllib.parse.parse_qsl(url.query))
-        config.update(url_config)
-
-        cache_class = aiocache.Cache.get_scheme_class(url.scheme)
-        config.update(cache_class.parse_uri_path(url.path))
-        config["endpoint"] = url.hostname
-        config["port"] = str(url.port)
-
-        if url.password:
-            config["password"] = url.password
-
-        if cache_class == aiocache.Cache.REDIS:
-            config["cache"] = "aiocache.RedisCache"
-        elif cache_class == aiocache.Cache.MEMCACHED:
-            config["cache"] = "aiocache.MemcachedCache"
-        
-        backend_info = f"endpoint {cache_setting.endpoint}"
 
     aiocache.caches.set_config({"default": config})
-    print(f"[CACHE] Initialized {backend_info} cache with TTL={cache_setting.ttl}s, namespace='{cache_setting.namespace}'")
+    print(f"[CACHE] Initialized in-memory cache with TTL={cache_setting.ttl}s, namespace='{cache_setting.namespace}'")
