@@ -178,25 +178,24 @@ BATHYMETRY_COLORS = [
 ]
 
 # Currents color scale - Light blue to red gradient for ocean current visualization
-from typing import Final
-
-CURRENT_COLORS: Final[list[str]] = [
-    # Dead zones/back eddies (30%) - more colors here
-    '#000a1a', '#001428', '#001e36', '#002844',
-    '#003252', '#003c60', '#00466e', '#00507c',
-    '#005a8a', '#006498', '#006ea6', '#0078b4',
-
-    # Weak to moderate flow (35%)
-    '#0082c2', '#008cd0', '#0096de', '#00a0ec',
-    '#10a8f0', '#28b0f0', '#40b8ed', '#58c0e8',
-    '#70c8e0', '#85ccd8', '#98d0cc', '#aad4c0',
-    '#bcd8b0', '#cedca0',
-
-    # Strong currents (35%)
-    '#e0e090', '#eedc70', '#f8d050', '#ffc430',
-    '#ffb810', '#ffaa00', '#ff9c00', '#ff8e00',
-    '#ff7700', '#ff6600', '#ff5500', '#ff3300',
-    '#ee1100', '#cc0000'
+CURRENT_COLORS = [
+    # Very slow/calm (0.0-0.1 knots) - light blue for bathymetry visibility
+    '#e6f3ff', '#cce7ff', '#b3dbff',
+    
+    # Slow currents (0.1-0.5 knots) - light to medium blues
+    '#99cfff', '#80c3ff', '#66b7ff',
+    
+    # Moderate currents (0.5-1.5 knots) - distinct blue to teal transition
+    '#4dabff', '#339fff', '#1a93ff',
+    
+    # Strong currents (1.5-3.0 knots) - bright cyan to green transition
+    '#00ced1', '#20b2aa', '#32cd32',
+    
+    # Very strong currents (3.0-5.0 knots) - green to yellow transition
+    '#9acd32', '#ffd700', '#ffa500',
+    
+    # Extreme currents (5.0+ knots) - orange to red alerts
+    '#ff6347', '#ff4500', '#dc143c', '#b22222'
 ]
 
 
