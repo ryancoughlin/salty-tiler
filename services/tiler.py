@@ -187,14 +187,14 @@ def _render_mosaic_tile_cached(
         colormap_bins: Number of colormap bins
         resampling: Resampling method
     """
+    import requests
     
-    # Use the mosaic tiler's tile method with proper parameters
-    kwargs = {
+    # Build the TiTiler mosaic endpoint URL
+    base_url = "http://127.0.0.1:8001"  # This should be configurable
+    endpoint = f"{base_url}/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}.png"
+    
+    params = {
         "url": mosaic_url,
-        "z": z, 
-        "x": x, 
-        "y": y,
-        "format": ImageType.png,
         "rescale": f"{min_value},{max_value}",
         "resampling": resampling,
         "colormap_bins": colormap_bins,
@@ -202,9 +202,13 @@ def _render_mosaic_tile_cached(
     
     # Use named colormap
     if colormap_name:
-        kwargs["colormap_name"] = colormap_name
-        
-    return mosaic_tiler.tile(**kwargs)
+        params["colormap_name"] = colormap_name
+    
+    # Make request to TiTiler mosaic endpoint
+    response = requests.get(endpoint, params=params, timeout=30)
+    response.raise_for_status()
+    
+    return response.content
 
 def render_mosaic_tile(
     mosaic_url: str,
@@ -246,13 +250,21 @@ def _query_mosaic_point_cached(
         mosaic_url: URL to MosaicJSON file
         lon, lat: Longitude and latitude coordinates
     """
+    import requests
     
-    kwargs = {
+    # Build the TiTiler mosaic point endpoint URL
+    base_url = "http://127.0.0.1:8001"  # This should be configurable
+    endpoint = f"{base_url}/mosaicjson/point/{lon},{lat}"
+    
+    params = {
         "url": mosaic_url,
-        "coordinates": f"{lon},{lat}",
     }
-        
-    return mosaic_tiler.point(**kwargs)
+    
+    # Make request to TiTiler mosaic endpoint
+    response = requests.get(endpoint, params=params, timeout=30)
+    response.raise_for_status()
+    
+    return response.json()
 
 def query_mosaic_point(
     mosaic_url: str,
