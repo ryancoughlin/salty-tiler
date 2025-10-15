@@ -18,6 +18,7 @@ from cache_plugin import setup_cache, cached
 
 # Import routes
 from routes.tiles import router as tiles_router
+from routes.bathymetry import router as bathymetry_router
 
 # Import color service
 from services.colors import register_colormaps
@@ -107,6 +108,10 @@ cog = TilerFactory(
     add_viewer=True,
 )
 
+# Create a MosaicJSON factory for bathymetry mosaics
+from titiler.mosaic.factory import MosaicTilerFactory
+mosaic = MosaicTilerFactory()
+
 # Note: Caching is now applied directly to specific tile endpoints in routes/tiles.py
 
 # Create a ColorMapFactory to expose colormap discovery endpoints
@@ -115,11 +120,15 @@ colormap_factory = ColorMapFactory(supported_colormaps=cmap)
 # Include the router with "/cog" prefix - this creates /cog/{z}/{x}/{y} routes
 app.include_router(cog.router, prefix="/cog", tags=["Cloud Optimized GeoTIFF"])
 
+# Include the mosaic router with "/mosaicjson" prefix - this creates /mosaicjson/{z}/{x}/{y} routes
+app.include_router(mosaic.router, prefix="/mosaicjson", tags=["MosaicJSON"])
+
 # Include the colormap router - this creates /colormaps endpoints
 app.include_router(colormap_factory.router, tags=["ColorMaps"])
 
 # Register application-specific routers
 app.include_router(tiles_router)
+app.include_router(bathymetry_router, prefix="/bathymetry", tags=["Bathymetry"])
 
 # Health check endpoint for Docker
 @app.get("/health")
