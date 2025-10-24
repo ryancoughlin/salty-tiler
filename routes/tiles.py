@@ -1,20 +1,10 @@
 from fastapi import APIRouter, HTTPException, Response, Query, Path
 from services.tiler import render_tile
 from cache_plugin import cached
-import requests
 import hashlib
 from typing import Optional
 
 router = APIRouter()
-
-def validate_cog_url(url: str) -> bool:
-    """Validate that the COG URL is accessible and is a valid TIFF file."""
-    try:
-        # Quick HEAD request to check if URL exists and is accessible
-        response = requests.head(url, timeout=10)
-        return response.status_code == 200 and 'tif' in url.lower()
-    except:
-        return False
 
 def generate_tile_cache_key(url: str, z: int, x: int, y: int, rescale: str, colormap_name: str, expression: str) -> str:
     """
@@ -59,11 +49,7 @@ def cog_tile_compatible(
     except ValueError:
         raise HTTPException(400, "rescale parameter must be in format 'min,max'")
     
-    # Validate COG URL exists
-    if not validate_cog_url(url):
-        raise HTTPException(404, f"COG file not found or inaccessible: {url}")
-    
-    # Render tile using client-provided expression
+    # Render tile using client-provided expression (TiTiler/GDAL will handle COG access errors)
     try:
         img = render_tile(
             path=url,

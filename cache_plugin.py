@@ -71,8 +71,9 @@ def setup_cache():
             'class': "aiocache.serializers.PickleSerializer"
         },
         'ttl': cache_setting.ttl,
-        'namespace': cache_setting.namespace
+        'namespace': cache_setting.namespace,
+        'max_size': 1000  # Limit cache to 1000 tiles (~30-50MB RAM) to prevent memory leak
     }
 
     aiocache.caches.set_config({"default": config})
-    print(f"[CACHE] Initialized in-memory cache with TTL={cache_setting.ttl}s, namespace='{cache_setting.namespace}'")
+    print(f"[CACHE] Initialized in-memory cache with TTL={cache_setting.ttl}s, max_size=1000, namespace='{cache_setting.namespace}'")
