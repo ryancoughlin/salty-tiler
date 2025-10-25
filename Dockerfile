@@ -1,4 +1,4 @@
-FROM osgeo/gdal:ubuntu-small-3.9.0
+FROM ghcr.io/osgeo/gdal:ubuntu-small-3.9.0
 
 # Install Python 3 and pip (using system default Python version)
 RUN apt-get update && apt-get install -y \
