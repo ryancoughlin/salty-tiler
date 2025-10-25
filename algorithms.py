@@ -383,3 +383,49 @@ class ChlorophyllSmoothMapper(BaseAlgorithm):
             metadata=img.metadata,
             cutline_mask=img.cutline_mask,
         )
+
+
+class OceanMask(BaseAlgorithm):
+    """Make values outside specified range transparent.
+
+    This algorithm marks pixels outside the specified min/max range as invalid,
+    making them transparent in the final output. It's memory efficient because
+    it only modifies the mask, not the data itself, allowing rescale to work
+    properly with the original temperature values.
+
+    Example usage:
+        ?algorithm=ocean_mask&algorithm_params={"min_temp":15.0,"max_temp":25.0}
+    """
+
+    # Algorithm parameters
+    min_temp: float = -10.0  # Minimum temperature to keep visible
+    max_temp: float = 40.0   # Maximum temperature to keep visible
+
+    # Metadata
+    input_nbands: int = 1
+    output_nbands: int = 1
+    output_dtype: str = "float32"
+
+    def __call__(self, img: ImageData) -> ImageData:
+        """
+        Mark out-of-range pixels as invalid.
+
+        IMPORTANT: We only modify the mask, NOT the data.
+        This keeps memory efficient and lets rescale work properly.
+        """
+        # True = invalid (masked/transparent)
+        # False = valid (visible)
+        invalid_mask = (img.array < self.min_temp) | (img.array > self.max_temp)
+
+        # Create masked array - data stays intact, only mask changes
+        masked_data = numpy.ma.MaskedArray(img.array, mask=invalid_mask)
+
+        return ImageData(
+            masked_data,
+            assets=img.assets,
+            crs=img.crs,
+            bounds=img.bounds,
+            band_names=img.band_names,
+            metadata=img.metadata,
+            cutline_mask=img.cutline_mask,
+        )
