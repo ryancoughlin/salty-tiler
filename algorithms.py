@@ -413,12 +413,19 @@ class OceanMask(BaseAlgorithm):
         IMPORTANT: We only modify the mask, NOT the data.
         This keeps memory efficient and lets rescale work properly.
         """
-        # True = invalid (masked/transparent)
-        # False = valid (visible)
-        invalid_mask = (img.array < self.min_temp) | (img.array > self.max_temp)
+        # Get existing mask if present (e.g., from NoData values in COG)
+        existing_mask = img.array.mask if numpy.ma.is_masked(img.array) else False
+
+        # Create mask for out-of-range temperatures
+        # True = invalid (masked/transparent), False = valid (visible)
+        temp_range_mask = (img.array < self.min_temp) | (img.array > self.max_temp)
+
+        # Combine existing mask with temperature range mask
+        # Pixel is masked if EITHER it was already masked OR outside temp range
+        combined_mask = existing_mask | temp_range_mask
 
         # Create masked array - data stays intact, only mask changes
-        masked_data = numpy.ma.MaskedArray(img.array, mask=invalid_mask)
+        masked_data = numpy.ma.MaskedArray(img.array, mask=combined_mask)
 
         return ImageData(
             masked_data,

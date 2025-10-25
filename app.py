@@ -5,13 +5,13 @@ TiTiler app to serve SST data from GOES19 ABI sensor, chlorophyll, and other oce
 This application uses TiTiler to serve Cloud-Optimized GeoTIFF (COG) files
 containing sea surface temperature and chlorophyll data.
 """
-from fastapi import FastAPI, Request
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
 from titiler.core.factory import ColorMapFactory
 from titiler.core.errors import DEFAULT_STATUS_CODES, add_exception_handlers
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import os
-from urllib.parse import urlencode, parse_qs, urlparse, urlunparse
 
 # Import caching
 from cache_plugin import setup_cache, cached
@@ -52,34 +52,41 @@ algorithms: Algorithms = default_algorithms.register({
 # Create algorithm dependency
 PostProcessParams = algorithms.dependency
 
-# Initialize the FastAPI app
-app = FastAPI(
-    title="Salty Tiler: Ocean Data TiTiler",
-    description="A TiTiler instance for serving temperature and chlorophyll data with temperature conversion to Fahrenheit",
-    version="0.1.0",
-)
 
-# Setup GDAL configuration and cache on startup (1 day TTL = 86400 seconds)
-@app.on_event("startup")
-async def startup_event():
-    """Initialize GDAL configuration and cache on application startup."""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize and cleanup resources on app startup and shutdown."""
+    # Startup: Initialize GDAL configuration and cache
     # Configure GDAL for optimal performance based on TiTiler recommendations
     # https://developmentseed.org/titiler/advanced/performance_tuning/
-    
+
     # Log current GDAL configuration (set by Docker)
     gdal_vars = [
         "GDAL_DISABLE_READDIR_ON_OPEN", "GDAL_CACHEMAX", "CPL_VSIL_CURL_CACHE_SIZE",
         "VSI_CACHE", "VSI_CACHE_SIZE", "GDAL_HTTP_MERGE_CONSECUTIVE_RANGES",
         "GDAL_HTTP_MULTIPLEX", "GDAL_HTTP_VERSION", "GDAL_BAND_BLOCK_CACHE"
     ]
-    
+
     print("[GDAL] Configuration:")
     for var in gdal_vars:
         value = os.getenv(var, "Not set")
         print(f"  {var}={value}")
-    
+
     # Initialize cache (TTL from environment or default)
     setup_cache()  # Will use CACHE_TTL env var or default to 1 hour
+
+    yield  # Application runs here
+
+    # Shutdown: cleanup if needed (none currently required)
+
+
+# Initialize the FastAPI app with lifespan
+app = FastAPI(
+    title="Salty Tiler: Ocean Data TiTiler",
+    description="A TiTiler instance for serving temperature and chlorophyll data with temperature conversion to Fahrenheit",
+    version="0.1.0",
+    lifespan=lifespan,
+)
 
 # Configure CORS from environment variables
 cors_origins = os.getenv("CORS_ORIGINS", "*").split(",")
@@ -114,9 +121,6 @@ cog = TilerFactory(
 
 # Create MosaicTilerFactory with custom colormaps
 mosaic = MosaicTilerFactory(colormap_dependency=ColorMapParams)
-
-# Import the tiler factory from services
-from services.tiler import cog_tiler
 
 # Note: Caching is now applied directly to specific tile endpoints in routes/tiles.py
 
@@ -162,135 +166,6 @@ async def cog_info(url: str):
 
 # Add exception handlers
 add_exception_handlers(app, DEFAULT_STATUS_CODES)
-
-# Debug endpoint to check COG file format and bands
-@app.get("/debug/bands")
-async def debug_cog_bands(url: str):
-    """
-    Debug endpoint to check COG file format and band information.
-    Example: /debug/bands?url=https://data.saltyoffshore.com/ne_canyons/sst_composite/2025-07-19T050224Z_cog.tif
-    """
-    import subprocess
-    import tempfile
-    import requests
-    
-    try:
-        # Download a sample of the file to test
-        response = requests.get(url, headers={'Range': 'bytes=0-2048'}, timeout=10)
-        if response.status_code != 206:
-            return {"error": f"HTTP {response.status_code}: Cannot access file"}
-        
-        # Save to temp file for GDAL to test
-        with tempfile.NamedTemporaryFile(suffix='.tif', delete=False) as tmp_file:
-            tmp_file.write(response.content)
-            tmp_path = tmp_file.name
-        
-        # Test with gdalinfo to get band information
-        result = subprocess.run(
-            ["gdalinfo", tmp_path],
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
-        
-        # Clean up temp file
-        import os
-        os.unlink(tmp_path)
-        
-        if result.returncode == 0:
-            # Parse the output to extract band information
-            output = result.stdout
-            bands = []
-            current_band = None
-            
-            for line in output.split('\n'):
-                if line.strip().startswith('Band '):
-                    current_band = line.strip()
-                    bands.append(current_band)
-                elif current_band and line.strip().startswith('  '):
-                    bands.append(line.strip())
-            
-            return {
-                "url": url,
-                "status": "success",
-                "file_size": len(response.content),
-                "gdalinfo_output": output,
-                "bands": bands,
-                "band_count": len([b for b in bands if b.startswith('Band ')])
-            }
-        else:
-            return {
-                "url": url,
-                "status": "error",
-                "returncode": result.returncode,
-                "stderr": result.stderr,
-                "file_size": len(response.content)
-            }
-    except Exception as e:
-        return {
-            "url": url,
-            "status": "exception",
-            "error": str(e),
-            "type": type(e).__name__
-        }
-
-# Debug endpoint to test full file access
-@app.get("/debug/full")
-async def debug_full_file(url: str):
-    """
-    Debug endpoint to test full file access and HTTP headers.
-    Example: /debug/full?url=https://data.saltyoffshore.com/ne_canyons/sst_composite/2025-07-19T050224Z_cog.tif
-    """
-    import requests
-    import subprocess
-    import tempfile
-    
-    try:
-        # Test full file download
-        response = requests.get(url, timeout=30)
-        if response.status_code != 200:
-            return {"error": f"HTTP {response.status_code}: Cannot download full file"}
-        
-        # Save full file to temp
-        with tempfile.NamedTemporaryFile(suffix='.tif', delete=False) as tmp_file:
-            tmp_file.write(response.content)
-            tmp_path = tmp_file.name
-        
-        # Test with gdalinfo on full file
-        result = subprocess.run(
-            ["gdalinfo", tmp_path],
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
-        
-        # Clean up temp file
-        import os
-        os.unlink(tmp_path)
-        
-        if result.returncode == 0:
-            return {
-                "url": url,
-                "status": "success",
-                "file_size": len(response.content),
-                "headers": dict(response.headers),
-                "gdalinfo_output": result.stdout[:500]  # First 500 chars
-            }
-        else:
-            return {
-                "url": url,
-                "status": "gdal_error",
-                "returncode": result.returncode,
-                "stderr": result.stderr,
-                "file_size": len(response.content)
-            }
-    except Exception as e:
-        return {
-            "url": url,
-            "status": "exception",
-            "error": str(e),
-            "type": type(e).__name__
-        }
 
 if __name__ == "__main__":
     host = os.getenv("TILER_HOST", "0.0.0.0")
