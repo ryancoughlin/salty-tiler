@@ -13,10 +13,10 @@ services:
       - CACHE_CACHE_TYPE=memory
       - CACHE_TTL=86400
       - CACHE_NAMESPACE=salty-tiler
-      # GDAL optimizations (can override Dockerfile defaults)
-      - VSI_CACHE_SIZE=50000000
-      - GDAL_CACHEMAX=200
-      - CPL_VSIL_CURL_CACHE_SIZE=200000000
+      # GDAL optimizations (reduced cache sizes)
+      - VSI_CACHE_SIZE=25000000
+      - GDAL_CACHEMAX=100
+      - CPL_VSIL_CURL_CACHE_SIZE=100000000
     volumes:
       # Mount custom colormap
       - ./sst_colormap.json:/app/sst_colormap.json:ro

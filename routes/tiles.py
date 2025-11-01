@@ -1,31 +1,9 @@
 from fastapi import APIRouter, HTTPException, Response, Query, Path
 from services.tiler import render_tile
-from cache_plugin import cached
-import hashlib
-from typing import Optional
 
 router = APIRouter()
 
-def generate_tile_cache_key(url: str, z: int, x: int, y: int, rescale: str, colormap_name: str, expression: str) -> str:
-    """
-    Generate optimized cache key for tile requests.
-    
-    Format: tile:{url_hash}:{z}:{x}:{y}:{rescale_hash}:{colormap}:{expr_hash}
-    This keeps keys short while ensuring uniqueness.
-    """
-    # Hash the URL to keep keys manageable
-    url_hash = hashlib.md5(url.encode()).hexdigest()[:8]
-    
-    # Hash rescale values for shorter keys
-    rescale_hash = hashlib.md5(rescale.encode()).hexdigest()[:6]
-    
-    # Hash expression if it's not the default
-    expr_hash = hashlib.md5(expression.encode()).hexdigest()[:6] if expression != "b1" else "default"
-    
-    return f"tile:{url_hash}:{z}:{x}:{y}:{rescale_hash}:{colormap_name}:{expr_hash}"
-
 @router.get("/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png")
-@cached(alias="default")
 def cog_tile_compatible(
     z: int = Path(...),
     x: int = Path(...),
@@ -62,9 +40,6 @@ def cog_tile_compatible(
     except Exception as e:
         raise HTTPException(404, f"Tile not available: {str(e)}")
 
-    # Generate cache key for debugging
-    cache_key = generate_tile_cache_key(url, z, x, y, rescale, colormap_name, expression)
-    
     return Response(
         img,
         media_type="image/png",
@@ -73,7 +48,6 @@ def cog_tile_compatible(
             "X-COG-URL": url,
             "X-Expression": expression,
             "X-Rescale": f"{min_val},{max_val}",
-            "X-Cache-Key": cache_key,
             "X-Tile-Coords": f"{z}/{x}/{y}"
         },
     ) 

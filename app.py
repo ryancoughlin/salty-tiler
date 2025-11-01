@@ -13,9 +13,6 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import os
 
-# Import caching
-from cache_plugin import setup_cache, cached
-
 # Import routes
 from routes.tiles import router as tiles_router
 
@@ -72,9 +69,6 @@ async def lifespan(app: FastAPI):
         value = os.getenv(var, "Not set")
         print(f"  {var}={value}")
 
-    # Initialize cache (TTL from environment or default)
-    setup_cache()  # Will use CACHE_TTL env var or default to 1 hour
-
     yield  # Application runs here
 
     # Shutdown: cleanup if needed (none currently required)
@@ -121,8 +115,6 @@ cog = TilerFactory(
 
 # Create MosaicTilerFactory with custom colormaps
 mosaic = MosaicTilerFactory(colormap_dependency=ColorMapParams)
-
-# Note: Caching is now applied directly to specific tile endpoints in routes/tiles.py
 
 # Create a ColorMapFactory to expose colormap discovery endpoints
 colormap_factory = ColorMapFactory(supported_colormaps=cmap)
