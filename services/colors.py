@@ -153,29 +153,45 @@ SSH_COLORS = [
     "#b81717", "#b01010", "#a80808"
 ]
 
-# Bathymetry color scale - Deep blues to light blues for depth visualization
-# Negative values (deeper) = darker blues, positive values (shallower) = lighter blues
+# Bathymetry color scale - Professional deep indigo/blues to light blues for depth visualization
+# Negative values (deeper) = darker indigos/blues, positive values (shallower) = lighter blues
+# Professional marine-focused palette with clear contrast for shaded relief
+# 
+# Typical rescale ranges for shaded bathymetry (in meters):
+# - Coastal/shelf regions: -500,0 or -1000,0
+# - Regional ocean (e.g., Gulf of Maine, Northeast Canyons): -4000,0 or -3000,0
+# - Deep ocean basins: -6000,0 or -8000,0
+# - Custom regions: Check COG statistics or use /cog/statistics endpoint
+#
+# Example tile URL:
+# /cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url={cog_url}&rescale=-4000,0&colormap_name=bathymetry
 BATHYMETRY_COLORS = [
-    # Deepest depths (darkest blues)
-    '#0a0a2e', '#16213e', '#1e2749', '#2c3e50', '#34495e',
-    '#2c3e50', '#34495e', '#3c4f6a', '#445f76', '#4c6f82',
+    # Deepest depths (deep indigo - professional, no purple)
+    '#0a1a3a', '#0f1f3f', '#142444', '#1a2a4a', '#1f2f4f',
+    '#243454', '#2a3a5a', '#2f3f5f', '#344464', '#394969',
     
-    # Mid-depths (medium blues)
-    '#547f8e', '#5c8f9a', '#649fa6', '#6cafb2', '#74bfbe',
-    '#7ccfca', '#84dfd6', '#8cefe2', '#94ffee', '#9cfffa',
+    # Deep to medium depths (rich blues with good contrast)
+    '#3e4e6e', '#445373', '#4a5878', '#505d7d', '#566282',
+    '#5c6787', '#626c8c', '#687191', '#6e7696', '#747b9b',
     
-    # Shallow depths (light blues to cyan)
-    '#a4ffff', '#acffff', '#b4ffff', '#bcffff', '#c4ffff',
-    '#ccffff', '#d4ffff', '#dcffff', '#e4ffff', '#ecffff',
+    # Mid-depths (medium blues - clear contrast for shading detail)
+    '#7a81a0', '#8087a5', '#868daa', '#8c93af', '#9299b4',
+    '#989fb9', '#9ea5be', '#a4abc3', '#aab1c8', '#b0b7cd',
     
-    # Very shallow (white to light blue)
-    '#f4ffff', '#fcffff', '#ffffff', '#f8f8ff', '#f0f0ff',
-    '#e8e8ff', '#e0e0ff', '#d8d8ff', '#d0d0ff', '#c8c8ff',
+    # Transitional depths (brightening blues - maintains contrast)
+    '#b6bdd2', '#bcc3d7', '#c2c9dc', '#c8cfe1', '#ced5e6',
+    '#d4dbeb', '#dae1f0', '#e0e7f5', '#e6edfa', '#ecf3ff',
     
-    # Above sea level (land - light browns)
-    '#c0c0ff', '#b8b8ff', '#b0b0ff', '#a8a8ff', '#a0a0ff',
-    '#9898ff', '#9090ff', '#8888ff', '#8080ff', '#7878ff'
+    # Shallow depths (light blues to cyan - distinct from deep)
+    '#f2f8ff', '#f8feff', '#ffffff', '#f0f8ff', '#e6f5ff',
+    '#dcf2ff', '#d2efff', '#c8ecff', '#bee9ff', '#b4e6ff',
+    
+    # Very shallow (pale blues - subtle transition)
+    '#aae3ff', '#a0e0ff', '#96ddff', '#8cdaff', '#82d7ff',
+    '#78d4ff', '#6ed1ff', '#64ceff', '#5acbff', '#50c8ff'
 ]
+
+
 
 # Currents color scale - Light blue to red gradient for ocean current visualization
 CURRENT_COLORS = [
