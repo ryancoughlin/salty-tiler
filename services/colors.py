@@ -77,8 +77,8 @@ CHLOROPHYLL_COLORS = [
 # Final optimized chlorophyll color scheme with ultra-smooth transitions
 # Gulf Stream colors for low values, seamless blue→cyan→green→yellow progression
 CHLOROPHYLL_COLORS = [
-    '#8B3A8B',  # 0.00 mg/m³ - Ultra-clear Gulf Stream (purple-pink)
-    '#6B238E',  # 0.01 mg/m³ - Transition
+    # '#8B3A8B',  # 0.00 mg/m³ - Ultra-clear Gulf Stream (purple-pink)
+    # '#6B238E',  # 0.01 mg/m³ - Transition
     '#4B1390',  # 0.02 mg/m³ - Ultra-clear transition
     '#2D1B69',  # 0.03 mg/m³ - Clear waters start (indigo)
     '#1a1a4b',  # 0.05 mg/m³ - Deep blue
