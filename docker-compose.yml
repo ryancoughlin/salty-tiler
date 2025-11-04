@@ -17,6 +17,18 @@ services:
       - VSI_CACHE_SIZE=25000000
       - GDAL_CACHEMAX=100
       - CPL_VSIL_CURL_CACHE_SIZE=100000000
+      # DigitalOcean Spaces credentials (for authenticated access)
+      # These are automatically mapped to AWS_* variables for GDAL compatibility
+      - SPACES_ACCESS_KEY_ID=${SPACES_ACCESS_KEY_ID:-}
+      - SPACES_SECRET_ACCESS_KEY=${SPACES_SECRET_ACCESS_KEY:-}
+      - SPACES_ENDPOINT=${SPACES_ENDPOINT:-nyc3.digitaloceanspaces.com}
+      - SPACES_BUCKET=${SPACES_BUCKET:-salty-data}
+      - SPACES_REGION=${SPACES_REGION:-nyc3}
+      - SPACES_CDN_URL=${SPACES_CDN_URL:-https://salty-data.nyc3.digitaloceanspaces.com}
+      # AWS S3 credentials (alternative - only if not using SPACES_*)
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_S3_ENDPOINT=${AWS_S3_ENDPOINT:-}
     volumes:
       # Mount custom colormap
       - ./sst_colormap.json:/app/sst_colormap.json:ro

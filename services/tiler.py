@@ -4,6 +4,8 @@ from titiler.core.resources.enums import ImageType
 
 # Import colormap registration
 from services.colors import register_colormaps
+# Import storage utilities for S3 path conversion
+from services.storage import get_cog_path
 
 # Register colormaps and get the dependency
 ColorMapParams, cmap = register_colormaps()
@@ -27,6 +29,9 @@ def _render_tile(
     Returns PNG bytes. Cloudflare handles caching at the edge.
     Supports both local paths and external URLs.
     
+    Automatically converts HTTP URLs to VSI paths when S3 credentials are configured,
+    enabling authenticated access to S3-compatible storage (DigitalOcean Spaces, AWS S3, etc.).
+    
     Args:
         path: Path or URL to the COG file
         z, x, y: Tile coordinates
@@ -35,9 +40,12 @@ def _render_tile(
         colormap_bins: Number of colormap bins
         expression: TiTiler expression for data transformation
     """
+    # Convert HTTP URLs to VSI paths when credentials are available
+    # This enables authenticated access to S3-compatible storage
+    cog_path = get_cog_path(path, prefer_vsi=True)
     
     kwargs = {
-        "path": path,
+        "path": cog_path,
         "tile_format": ImageType.png,
         "scale_range": [min_value, max_value],
         "colormap_bins": colormap_bins,

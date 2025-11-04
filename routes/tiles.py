@@ -27,7 +27,8 @@ def cog_tile_compatible(
     except ValueError:
         raise HTTPException(400, "rescale parameter must be in format 'min,max'")
     
-    # Render tile using client-provided expression (TiTiler/GDAL will handle COG access errors)
+    # Render tile using client-provided expression
+    # TiTiler will automatically convert HTTP URLs to VSI paths when credentials are configured
     try:
         img = render_tile(
             path=url,
@@ -38,7 +39,21 @@ def cog_tile_compatible(
             expression=expression,
         )
     except Exception as e:
-        raise HTTPException(404, f"Tile not available: {str(e)}")
+        error_msg = str(e)
+        # Check for authentication errors (403)
+        if "403" in error_msg or "Forbidden" in error_msg:
+            raise HTTPException(
+                403, 
+                f"Authentication failed. Check AWS credentials and S3 endpoint configuration. "
+                f"Original error: {error_msg}"
+            )
+        # Check for other HTTP errors
+        if "HTTP" in error_msg:
+            status_code = 500
+            if "404" in error_msg:
+                status_code = 404
+            raise HTTPException(status_code, f"Failed to access COG: {error_msg}")
+        raise HTTPException(500, f"Tile rendering failed: {error_msg}")
 
     return Response(
         img,

@@ -6,12 +6,18 @@ This application uses TiTiler to serve Cloud-Optimized GeoTIFF (COG) files
 containing sea surface temperature and chlorophyll data.
 """
 from contextlib import asynccontextmanager
+import os
+
+# Configure GDAL for S3-compatible storage BEFORE importing any GDAL-dependent libraries
+# This must happen before rasterio/titiler imports
+from services.storage import configure_gdal_for_s3
+configure_gdal_for_s3()
+
 from fastapi import FastAPI
 from titiler.core.factory import ColorMapFactory
 from titiler.core.errors import DEFAULT_STATUS_CODES, add_exception_handlers
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-import os
 
 # Import routes
 from routes.tiles import router as tiles_router
@@ -68,6 +74,44 @@ async def lifespan(app: FastAPI):
     for var in gdal_vars:
         value = os.getenv(var, "Not set")
         print(f"  {var}={value}")
+
+    # Log S3/DigitalOcean Spaces configuration
+    spaces_vars = [
+        "SPACES_ACCESS_KEY_ID", "SPACES_SECRET_ACCESS_KEY", "SPACES_ENDPOINT",
+        "SPACES_BUCKET", "SPACES_REGION", "SPACES_CDN_URL"
+    ]
+    aws_vars = [
+        "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
+        "AWS_REGION", "AWS_S3_ENDPOINT"
+    ]
+    
+    print("[Spaces] Configuration:")
+    has_spaces = False
+    for var in spaces_vars:
+        value = os.getenv(var, "Not set")
+        if value != "Not set":
+            has_spaces = True
+        # Mask secrets for security
+        if "SECRET" in var or "KEY" in var:
+            value = "***" if value != "Not set" else value
+        print(f"  {var}={value}")
+    
+    if not has_spaces:
+        print("[S3] Configuration (AWS fallback):")
+        for var in aws_vars:
+            value = os.getenv(var, "Not set")
+            # Mask secrets for security
+            if "SECRET" in var or "TOKEN" in var or "KEY" in var:
+                value = "***" if value != "Not set" else value
+            print(f"  {var}={value}")
+    
+    # Check if credentials are configured (after mapping)
+    has_creds = bool(os.getenv("AWS_ACCESS_KEY_ID") or os.getenv("SPACES_ACCESS_KEY_ID"))
+    has_endpoint = bool(os.getenv("AWS_S3_ENDPOINT") or os.getenv("SPACES_ENDPOINT"))
+    
+    if has_endpoint and not has_creds:
+        print("[S3] ⚠️  Warning: S3 endpoint is configured but credentials are missing.")
+        print("[S3]   HTTP URLs will work, but VSI paths will require credentials.")
 
     yield  # Application runs here
 
