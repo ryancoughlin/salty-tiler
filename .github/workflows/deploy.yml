@@ -16,7 +16,7 @@ jobs:
 
       - run: |
           ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} '
-            cd /salty-tiler &&
+            cd /opt/salty-tiler &&
             git pull origin main &&
             ./deploy.sh
           '
