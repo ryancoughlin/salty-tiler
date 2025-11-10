@@ -214,6 +214,35 @@ CURRENT_COLORS = [
     '#ff6347', '#ff4500', '#dc143c', '#b22222'
 ]
 
+# Boundary fire ramp - Threshold-focused with rapid color transition
+# Emphasizes critical boundaries with sharp color shifts, fire-like intensity at boundaries
+BOUNDARY_FIRE_COLORS = [
+    '#8b008b',  # Dark purple
+    '#b22222',  # Firebrick
+    '#ff4500',  # Red-orange
+    '#ff8c00',  # Dark orange
+    '#ffd700',  # Gold
+    '#adff2f',  # Green-yellow
+    '#00bfff',  # Deep sky blue
+    '#00008b',  # Dark blue
+    '#191970'   # Midnight blue
+]
+
+# Purple blue gradient - Sequential perceptual gradient
+# Smooth transitions from purple through warm colors to blue for pattern recognition
+PURPLE_BLUE_GRADIENT_COLORS = [
+    '#800080',  # Purple
+    '#dc143c',  # Crimson
+    '#ff6347',  # Tomato
+    '#ffa500',  # Orange
+    '#ffdf00',  # Bright yellow
+    '#90ee90',  # Light green
+    '#40e0d0',  # Turquoise
+    '#1e90ff',  # Dodger blue
+    '#006994',  # Deep cerulean
+    '#003153'   # Prussian blue
+]
+
 
 def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> Dict[int, Tuple[int, int, int, int]]:
     """Create a continuous colormap by interpolating between colors in the list."""
@@ -265,6 +294,8 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     ssh_colormap = create_continuous_colormap(SSH_COLORS, 256)
     currents_colormap = create_continuous_colormap(CURRENT_COLORS, 256)
     bathymetry_colormap = create_continuous_colormap(BATHYMETRY_COLORS, 256)
+    boundary_fire_colormap = create_continuous_colormap(BOUNDARY_FIRE_COLORS, 256)
+    purple_blue_gradient_colormap = create_continuous_colormap(PURPLE_BLUE_GRADIENT_COLORS, 256)
 
     # Register custom colormaps
     custom_colormaps = {
@@ -276,7 +307,9 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
         "mld_default": mld_colormap,
         "ssh": ssh_colormap,
         "currents": currents_colormap,
-        "bathymetry": bathymetry_colormap
+        "bathymetry": bathymetry_colormap,
+        "boundary_fire": boundary_fire_colormap,
+        "purple_blue_gradient": purple_blue_gradient_colormap
     }
     
     return custom_colormaps
