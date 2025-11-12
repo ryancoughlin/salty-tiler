@@ -231,22 +231,6 @@ BOUNDARY_FIRE_COLORS = [
     '#191970'   # Midnight blue
 ]
 
-# Purple blue gradient - Sequential perceptual gradient
-# Smooth transitions from purple through warm colors to blue for pattern recognition
-PURPLE_BLUE_GRADIENT_COLORS = [
-    '#800080',  # Purple
-    '#dc143c',  # Crimson
-    '#ff6347',  # Tomato
-    '#ffa500',  # Orange
-    '#ffdf00',  # Bright yellow
-    '#90ee90',  # Light green
-    '#40e0d0',  # Turquoise
-    '#1e90ff',  # Dodger blue
-    '#006994',  # Deep cerulean
-    '#003153'   # Prussian blue
-]
-
-
 def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> Dict[int, Tuple[int, int, int, int]]:
     """Create a continuous colormap by interpolating between colors in the list."""
     # Convert hex colors to RGB
@@ -299,7 +283,6 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     currents_colormap = create_continuous_colormap(CURRENT_COLORS, 256)
     bathymetry_colormap = create_continuous_colormap(BATHYMETRY_COLORS, 256)
     boundary_fire_colormap = create_continuous_colormap(BOUNDARY_FIRE_COLORS, 256)
-    purple_blue_gradient_colormap = create_continuous_colormap(PURPLE_BLUE_GRADIENT_COLORS, 256)
 
     # Register custom colormaps
     custom_colormaps = {
@@ -314,7 +297,6 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
         "currents": currents_colormap,
         "bathymetry": bathymetry_colormap,
         "boundary_fire": boundary_fire_colormap,
-        "purple_blue_gradient": purple_blue_gradient_colormap
     }
     
     return custom_colormaps
