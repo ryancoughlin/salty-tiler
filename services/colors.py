@@ -124,6 +124,7 @@ WATER_CLARITY_COLORS = [
 
 # Mixed Layer Depth - cool to warm progression with brightened professional tones
 # Better contrast in shallow range while maintaining visual harmony
+# Generic name: TBD (bright vibrant cool-to-warm gradient)
 MLD_COLORS = [
     '#2d2d6b',  # brightened indigo (shallow MLD)
     '#1e4db8',  # brighter deep blue
@@ -308,7 +309,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
         "salinity": salinity_colormap,  # DEPRECATED: Use "cascade" instead. Kept for backward compatibility.
         "cascade": salinity_colormap,  # Generic dataset-agnostic name (smooth flowing transition)
         "water_clarity": water_clarity_colormap,
-        "mld_default": mld_colormap,
+        "mld_default": mld_colormap,  # DEPRECATED: Generic name TBD. Kept for backward compatibility.
         "ssh": ssh_colormap,
         "currents": currents_colormap,
         "bathymetry": bathymetry_colormap,
