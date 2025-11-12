@@ -105,6 +105,8 @@ CHLOROPHYLL_COLORS = [
     '#D35400',  # 2.00 mg/m³ - Orange
 ]
 
+# Salinity color scale - Deep indigo/blue through cyan/teal to green to yellow
+# Generic name: cascade (smooth flowing transition from cool to warm)
 SALINITY_COLORS = [
     '#0a0d3a', '#0d1f6d', '#12328f', '#1746b1',
     '#1f7bbf', '#22a6c5', '#27c8b8', '#3fdf9b',
@@ -289,6 +291,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     sst_salty_vibes_colormap = create_continuous_colormap(SST_COLORS_SALTY_VIBES, 256)
     chlorophyll_colormap = create_continuous_colormap(CHLOROPHYLL_COLORS, 256)
     salinity_colormap = create_continuous_colormap(SALINITY_COLORS, 256)
+    # Note: salinity_colormap is also registered as "cascade" below for generic use
     water_clarity_colormap = create_continuous_colormap(WATER_CLARITY_COLORS, 256)
     mld_colormap = create_continuous_colormap(MLD_COLORS, 256)
     ssh_colormap = create_continuous_colormap(SSH_COLORS, 256)
@@ -302,7 +305,8 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
         "sst_high_contrast": sst_colormap,
         "sst_salty_vibes": sst_salty_vibes_colormap,
         "chlorophyll": chlorophyll_colormap,
-        "salinity": salinity_colormap,
+        "salinity": salinity_colormap,  # DEPRECATED: Use "cascade" instead. Kept for backward compatibility.
+        "cascade": salinity_colormap,  # Generic dataset-agnostic name (smooth flowing transition)
         "water_clarity": water_clarity_colormap,
         "mld_default": mld_colormap,
         "ssh": ssh_colormap,
