@@ -109,38 +109,48 @@ CHLOROPHYLL_COLORS = [
 # Redistributed with more color stops in the lower range (0.01-0.1 mg/m³) to make them "pop" when log10 expanded
 # Same exact color palette as CHLOROPHYLL_COLORS, just reorganized for log10 visualization
 CHLOROPHYLL_LOG10_COLORS = [
-    # All colors from CHLOROPHYLL_COLORS, redistributed with more emphasis on lower range
-    '#4B1390',  # From CHLOROPHYLL_COLORS - Ultra-clear transition
-    '#4B1390',  # Repeat for more stops in lower range
-    '#2D1B69',  # From CHLOROPHYLL_COLORS - Clear waters start (indigo)
-    '#2D1B69',  # Repeat
-    '#1a1a4b',  # From CHLOROPHYLL_COLORS - Deep blue
-    '#1a1a4b',  # Repeat
-    '#0f2a6b',  # From CHLOROPHYLL_COLORS - Deep blue transition
-    '#0f2a6b',  # Repeat
-    '#0B3D91',  # From CHLOROPHYLL_COLORS - Medium blue
-    '#0B3D91',  # Repeat
-    '#0d5bb8',  # From CHLOROPHYLL_COLORS - Medium blue
-    '#1464F4',  # From CHLOROPHYLL_COLORS - Bright blue
-    '#1a71e1',  # From CHLOROPHYLL_COLORS - Blue-cyan transition start
-    '#1e7ee8',  # From CHLOROPHYLL_COLORS - Blue-cyan
-    '#2b8bc7',  # From CHLOROPHYLL_COLORS - Blue-cyan
-    '#00B3B3',  # From CHLOROPHYLL_COLORS - Cyan
-    '#26c4b8',  # From CHLOROPHYLL_COLORS - Cyan-green transition
-    '#3fd1c7',  # From CHLOROPHYLL_COLORS - Light cyan
-    '#5ac9c0',  # From CHLOROPHYLL_COLORS - Light cyan
-    '#7dd8c5',  # From CHLOROPHYLL_COLORS - Pale cyan
-    '#9de6c9',  # From CHLOROPHYLL_COLORS - Pale cyan-green
-    '#b8e0b8',  # From CHLOROPHYLL_COLORS - Pale green
-    '#c8e8a8',  # From CHLOROPHYLL_COLORS - Green-yellow transition
-    '#d4f0a8',  # From CHLOROPHYLL_COLORS - Light green-yellow
-    '#e0ec80',  # From CHLOROPHYLL_COLORS - Green-yellow transition
-    '#e8f080',  # From CHLOROPHYLL_COLORS - Yellow-green
-    '#F1C40F',  # From CHLOROPHYLL_COLORS - Yellow
-    '#e6b800',  # From CHLOROPHYLL_COLORS - Yellow-orange
-    '#D35400',  # From CHLOROPHYLL_COLORS - Orange
+    # Bright purples for ultra-clear (0.01-0.03 mg/m³)
+    '#E040E0',  # Bright purple/pink - Gulf Stream
+    '#E040E0',  # Repeat
+    '#9966CC',  # Purple transition
+    '#6633CC',  # Purple-blue blend
+    
+    # Deep blues for clear ocean (0.05-0.10 mg/m³)
+    '#0D1F6D',  # Deep indigo - where most of your data starts
+    '#0D1F6D',  # Repeat for emphasis
+    '#1E3A8A',  # Deep blue
+    '#1E3A8A',  # Repeat
+    '#1E40AF',  # Strong blue
+    '#1E40AF',  # Repeat
+    
+    # Bright blues (0.15-0.30 mg/m³)
+    '#2196F3',  # Professional bright blue
+    '#2196F3',  # Repeat
+    '#3B82F6',  # Light blue
+    
+    # Cyan transition (0.40-0.70 mg/m³)
+    '#00BCD4',  # Cyan
+    '#00BCD4',  # Repeat
+    '#00ACC1',  # Deeper cyan
+    
+    # Teal-green (0.85-1.50 mg/m³)
+    '#00897B',  # Teal-green
+    '#26A69A',  # Teal
+    
+    # Green (1.70-3.00 mg/m³)
+    '#4CAF50',  # Green - typical coastal
+    '#4CAF50',  # Repeat
+    '#66BB6A',  # Bright green
+    
+    # Yellow-green to yellow (3.00-6.00 mg/m³)
+    '#9CCC65',  # Yellow-green
+    '#C0CA33',  # Lime
+    '#FDD835',  # Yellow
+    
+    # Orange (6.00-8.00 mg/m³)
+    '#FFB300',  # Amber-orange
+    '#D35400',  # Deep orange
 ]
-
 # Salinity color scale - Deep indigo/blue through cyan/teal to green to yellow
 # Generic name: flow (smooth flowing transition from cool to warm)
 SALINITY_COLORS = [
