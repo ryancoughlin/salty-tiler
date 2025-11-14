@@ -106,7 +106,7 @@ CHLOROPHYLL_COLORS = [
 ]
 
 # Salinity color scale - Deep indigo/blue through cyan/teal to green to yellow
-# Generic name: cascade (smooth flowing transition from cool to warm)
+# Generic name: flow (smooth flowing transition from cool to warm)
 SALINITY_COLORS = [
     '#0a0d3a', '#0d1f6d', '#12328f', '#1746b1',
     '#1f7bbf', '#22a6c5', '#27c8b8', '#3fdf9b',
@@ -124,7 +124,7 @@ WATER_CLARITY_COLORS = [
 
 # Mixed Layer Depth - cool to warm progression with brightened professional tones
 # Better contrast in shallow range while maintaining visual harmony
-# Generic name: TBD (bright vibrant cool-to-warm gradient)
+# Generic name: cascade (bright vibrant cool-to-warm gradient)
 MLD_COLORS = [
     '#2d2d6b',  # brightened indigo (shallow MLD)
     '#1e4db8',  # brighter deep blue
@@ -276,9 +276,10 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     sst_salty_vibes_colormap = create_continuous_colormap(SST_COLORS_SALTY_VIBES, 256)
     chlorophyll_colormap = create_continuous_colormap(CHLOROPHYLL_COLORS, 256)
     salinity_colormap = create_continuous_colormap(SALINITY_COLORS, 256)
-    # Note: salinity_colormap is also registered as "cascade" below for generic use
+    # Note: salinity_colormap is also registered as "flow" below for generic use
     water_clarity_colormap = create_continuous_colormap(WATER_CLARITY_COLORS, 256)
     mld_colormap = create_continuous_colormap(MLD_COLORS, 256)
+    # Note: mld_colormap is also registered as "cascade" below for generic use
     ssh_colormap = create_continuous_colormap(SSH_COLORS, 256)
     currents_colormap = create_continuous_colormap(CURRENT_COLORS, 256)
     bathymetry_colormap = create_continuous_colormap(BATHYMETRY_COLORS, 256)
@@ -289,10 +290,11 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
         "sst_high_contrast": sst_colormap,
         "sst_salty_vibes": sst_salty_vibes_colormap,
         "chlorophyll": chlorophyll_colormap,
-        "salinity": salinity_colormap,  # DEPRECATED: Use "cascade" instead. Kept for backward compatibility.
-        "cascade": salinity_colormap,  # Generic dataset-agnostic name (smooth flowing transition)
+        "salinity": salinity_colormap,  # DEPRECATED: Use "flow" instead. Kept for backward compatibility.
+        "flow": salinity_colormap,  # Generic dataset-agnostic name (smooth flowing transition from cool to warm)
         "water_clarity": water_clarity_colormap,
-        "mld_default": mld_colormap,  # DEPRECATED: Generic name TBD. Kept for backward compatibility.
+        "mld_default": mld_colormap,  # DEPRECATED: Use "cascade" instead. Kept for backward compatibility.
+        "cascade": mld_colormap,  # Generic dataset-agnostic name (bright vibrant cool-to-warm gradient)
         "ssh": ssh_colormap,
         "currents": currents_colormap,
         "bathymetry": bathymetry_colormap,
