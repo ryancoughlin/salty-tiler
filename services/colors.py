@@ -105,6 +105,42 @@ CHLOROPHYLL_COLORS = [
     '#D35400',  # 2.00 mg/m³ - Orange
 ]
 
+# Chlorophyll colormap optimized for log10 scaling - uses same exact colors as CHLOROPHYLL_COLORS
+# Redistributed with more color stops in the lower range (0.01-0.1 mg/m³) to make them "pop" when log10 expanded
+# Same exact color palette as CHLOROPHYLL_COLORS, just reorganized for log10 visualization
+CHLOROPHYLL_LOG10_COLORS = [
+    # All colors from CHLOROPHYLL_COLORS, redistributed with more emphasis on lower range
+    '#4B1390',  # From CHLOROPHYLL_COLORS - Ultra-clear transition
+    '#4B1390',  # Repeat for more stops in lower range
+    '#2D1B69',  # From CHLOROPHYLL_COLORS - Clear waters start (indigo)
+    '#2D1B69',  # Repeat
+    '#1a1a4b',  # From CHLOROPHYLL_COLORS - Deep blue
+    '#1a1a4b',  # Repeat
+    '#0f2a6b',  # From CHLOROPHYLL_COLORS - Deep blue transition
+    '#0f2a6b',  # Repeat
+    '#0B3D91',  # From CHLOROPHYLL_COLORS - Medium blue
+    '#0B3D91',  # Repeat
+    '#0d5bb8',  # From CHLOROPHYLL_COLORS - Medium blue
+    '#1464F4',  # From CHLOROPHYLL_COLORS - Bright blue
+    '#1a71e1',  # From CHLOROPHYLL_COLORS - Blue-cyan transition start
+    '#1e7ee8',  # From CHLOROPHYLL_COLORS - Blue-cyan
+    '#2b8bc7',  # From CHLOROPHYLL_COLORS - Blue-cyan
+    '#00B3B3',  # From CHLOROPHYLL_COLORS - Cyan
+    '#26c4b8',  # From CHLOROPHYLL_COLORS - Cyan-green transition
+    '#3fd1c7',  # From CHLOROPHYLL_COLORS - Light cyan
+    '#5ac9c0',  # From CHLOROPHYLL_COLORS - Light cyan
+    '#7dd8c5',  # From CHLOROPHYLL_COLORS - Pale cyan
+    '#9de6c9',  # From CHLOROPHYLL_COLORS - Pale cyan-green
+    '#b8e0b8',  # From CHLOROPHYLL_COLORS - Pale green
+    '#c8e8a8',  # From CHLOROPHYLL_COLORS - Green-yellow transition
+    '#d4f0a8',  # From CHLOROPHYLL_COLORS - Light green-yellow
+    '#e0ec80',  # From CHLOROPHYLL_COLORS - Green-yellow transition
+    '#e8f080',  # From CHLOROPHYLL_COLORS - Yellow-green
+    '#F1C40F',  # From CHLOROPHYLL_COLORS - Yellow
+    '#e6b800',  # From CHLOROPHYLL_COLORS - Yellow-orange
+    '#D35400',  # From CHLOROPHYLL_COLORS - Orange
+]
+
 # Salinity color scale - Deep indigo/blue through cyan/teal to green to yellow
 # Generic name: flow (smooth flowing transition from cool to warm)
 SALINITY_COLORS = [
@@ -275,6 +311,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     sst_colormap = create_continuous_colormap(SST_COLORS_HIGH_CONTRAST, 256)
     sst_salty_vibes_colormap = create_continuous_colormap(SST_COLORS_SALTY_VIBES, 256)
     chlorophyll_colormap = create_continuous_colormap(CHLOROPHYLL_COLORS, 256)
+    chlorophyll_log10_colormap = create_continuous_colormap(CHLOROPHYLL_LOG10_COLORS, 256)
     salinity_colormap = create_continuous_colormap(SALINITY_COLORS, 256)
     # Note: salinity_colormap is also registered as "flow" below for generic use
     water_clarity_colormap = create_continuous_colormap(WATER_CLARITY_COLORS, 256)
@@ -290,6 +327,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
         "sst_high_contrast": sst_colormap,
         "sst_salty_vibes": sst_salty_vibes_colormap,
         "chlorophyll": chlorophyll_colormap,
+        "chlorophyll_log10": chlorophyll_log10_colormap,  # Optimized for log10 scaling - emphasizes lower values
         "salinity": salinity_colormap,  # DEPRECATED: Use "flow" instead. Kept for backward compatibility.
         "flow": salinity_colormap,  # Generic dataset-agnostic name (smooth flowing transition from cool to warm)
         "water_clarity": water_clarity_colormap,
