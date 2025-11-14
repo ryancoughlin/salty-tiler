@@ -59,61 +59,11 @@ SST_COLORS_SALTY_VIBES = [
     '#cf0003', '#be000a', '#ad0011', '#9c0018', '#8b001f'
 ]
 
-# Original linear color scheme (0.00 to 2.00 mg/m³)
+# Chlorophyll color scheme optimized for log10 scaling
+# Minimal purple/pink, emphasizes lower ranges with more color stops
 CHLOROPHYLL_COLORS = [
-    '#8B3A8B',  # 0.00 mg/m³ - bright indigo/pink mix (ultra-oligotrophic Gulf Stream look)
-    '#1a1a4b',  # 0.02 mg/m³ - deep indigo-blue transition
-    '#0B3D91',  # 0.05 mg/m³ - deep blue
-    '#0d5bb8',  # 0.10 mg/m³ - blue
-    '#1464F4',  # 0.20 mg/m³ - blue
-    '#1e7ee8',  # 0.35 mg/m³ - blue to blue-cyan
-    '#00B3B3',  # 0.50 mg/m³ - cyan
-    '#3fd1c7',  # 0.75 mg/m³ - light cyan
-    '#F1C40F',  # 1.00 mg/m³ - yellow (productive edge)
-    '#e6b800',  # 1.50 mg/m³ - yellow-orange
-    '#D35400',  # 2.00 mg/m³ - orange-brown (upper end)
-]
-
-# Final optimized chlorophyll color scheme with ultra-smooth transitions
-# Gulf Stream colors for low values, seamless blue→cyan→green→yellow progression
-CHLOROPHYLL_COLORS = [
-    # '#8B3A8B',  # 0.00 mg/m³ - Ultra-clear Gulf Stream (purple-pink)
-    # '#6B238E',  # 0.01 mg/m³ - Transition
-    '#4B1390',  # 0.02 mg/m³ - Ultra-clear transition
-    '#2D1B69',  # 0.03 mg/m³ - Clear waters start (indigo)
-    '#1a1a4b',  # 0.05 mg/m³ - Deep blue
-    '#0f2a6b',  # 0.07 mg/m³ - Deep blue transition
-    '#0B3D91',  # 0.10 mg/m³ - Medium blue
-    '#0d5bb8',  # 0.15 mg/m³ - Medium blue
-    '#1464F4',  # 0.20 mg/m³ - Bright blue
-    '#1a71e1',  # 0.25 mg/m³ - Blue-cyan transition start
-    '#1e7ee8',  # 0.30 mg/m³ - Blue-cyan
-    '#2b8bc7',  # 0.40 mg/m³ - Blue-cyan
-    '#00B3B3',  # 0.55 mg/m³ - Cyan
-    '#26c4b8',  # 0.70 mg/m³ - Cyan-green transition
-    '#3fd1c7',  # 0.85 mg/m³ - Light cyan
-    '#5ac9c0',  # 1.00 mg/m³ - Light cyan
-    '#7dd8c5',  # 1.15 mg/m³ - Pale cyan
-    '#9de6c9',  # 1.30 mg/m³ - Pale cyan-green
-    '#b8e0b8',  # 1.45 mg/m³ - Pale green
-    '#c8e8a8',  # 1.55 mg/m³ - Green-yellow transition
-    '#d4f0a8',  # 1.65 mg/m³ - Light green-yellow
-    '#e0ec80',  # 1.70 mg/m³ - Green-yellow transition
-    '#e8f080',  # 1.75 mg/m³ - Yellow-green
-    '#F1C40F',  # 1.80 mg/m³ - Yellow
-    '#e6b800',  # 1.95 mg/m³ - Yellow-orange
-    '#D35400',  # 2.00 mg/m³ - Orange
-]
-
-# Chlorophyll colormap optimized for log10 scaling - uses same exact colors as CHLOROPHYLL_COLORS
-# Redistributed with more color stops in the lower range (0.01-0.1 mg/m³) to make them "pop" when log10 expanded
-# Same exact color palette as CHLOROPHYLL_COLORS, just reorganized for log10 visualization
-CHLOROPHYLL_LOG10_COLORS = [
-    # Bright purples for ultra-clear (0.01-0.03 mg/m³)
-    '#E040E0',  # Bright purple/pink - Gulf Stream
-    '#E040E0',  # Repeat
-    '#9966CC',  # Purple transition
-    '#6633CC',  # Purple-blue blend
+    # Ultra-low: Minimal purple, quick transition to deep blues (0.01-0.05 mg/m³)
+    '#6633CC',  # Subtle purple-blue (minimal pink)
     
     # Deep blues for clear ocean (0.05-0.10 mg/m³)
     '#0D1F6D',  # Deep indigo - where most of your data starts
@@ -321,7 +271,6 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     sst_colormap = create_continuous_colormap(SST_COLORS_HIGH_CONTRAST, 256)
     sst_salty_vibes_colormap = create_continuous_colormap(SST_COLORS_SALTY_VIBES, 256)
     chlorophyll_colormap = create_continuous_colormap(CHLOROPHYLL_COLORS, 256)
-    chlorophyll_log10_colormap = create_continuous_colormap(CHLOROPHYLL_LOG10_COLORS, 256)
     salinity_colormap = create_continuous_colormap(SALINITY_COLORS, 256)
     # Note: salinity_colormap is also registered as "flow" below for generic use
     water_clarity_colormap = create_continuous_colormap(WATER_CLARITY_COLORS, 256)
@@ -337,7 +286,6 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
         "sst_high_contrast": sst_colormap,
         "sst_salty_vibes": sst_salty_vibes_colormap,
         "chlorophyll": chlorophyll_colormap,
-        "chlorophyll_log10": chlorophyll_log10_colormap,  # Optimized for log10 scaling - emphasizes lower values
         "salinity": salinity_colormap,  # DEPRECATED: Use "flow" instead. Kept for backward compatibility.
         "flow": salinity_colormap,  # Generic dataset-agnostic name (smooth flowing transition from cool to warm)
         "water_clarity": water_clarity_colormap,
