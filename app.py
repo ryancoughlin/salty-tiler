@@ -73,7 +73,22 @@ async def lifespan(app: FastAPI):
     print("[GDAL] Configuration:")
     for var in gdal_vars:
         value = os.getenv(var, "Not set")
-        print(f"  {var}={value}")
+        # Format cache sizes in human-readable format
+        if var == "GDAL_CACHEMAX" and value != "Not set":
+            try:
+                mb = int(value)
+                print(f"  {var}={value} ({mb} MB)")
+            except ValueError:
+                print(f"  {var}={value}")
+        elif var in ("CPL_VSIL_CURL_CACHE_SIZE", "VSI_CACHE_SIZE") and value != "Not set":
+            try:
+                bytes_val = int(value)
+                mb = bytes_val / (1024 * 1024)
+                print(f"  {var}={value} ({mb:.1f} MB)")
+            except ValueError:
+                print(f"  {var}={value}")
+        else:
+            print(f"  {var}={value}")
 
     # Log S3/DigitalOcean Spaces configuration
     spaces_vars = [

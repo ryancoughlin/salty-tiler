@@ -13,10 +13,11 @@ services:
       - CACHE_CACHE_TYPE=memory
       - CACHE_TTL=86400
       - CACHE_NAMESPACE=salty-tiler
-      # GDAL optimizations (reduced cache sizes)
-      - VSI_CACHE_SIZE=25000000
-      - GDAL_CACHEMAX=100
-      - CPL_VSIL_CURL_CACHE_SIZE=100000000
+      # GDAL optimizations (optimized for 5,658+ entries, remote S3 storage)
+      # With 4GB container and 2 workers, allocate 2GB for GDAL cache
+      - GDAL_CACHEMAX=2048
+      - CPL_VSIL_CURL_CACHE_SIZE=500000000
+      - VSI_CACHE_SIZE=100000000
       # DigitalOcean Spaces credentials (for authenticated access)
       # These are automatically mapped to AWS_* variables for GDAL compatibility
       - SPACES_ACCESS_KEY_ID=${SPACES_ACCESS_KEY_ID:-}
