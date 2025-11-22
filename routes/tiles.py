@@ -37,6 +37,7 @@ def cog_tile_compatible(
             colormap_name=colormap_name,
             colormap_bins=256,
             expression=expression,
+            resampling_method=resampling,
         )
     except Exception as e:
         error_msg = str(e)

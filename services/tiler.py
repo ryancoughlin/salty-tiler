@@ -23,6 +23,7 @@ def _render_tile(
     colormap_name: Optional[str] = None,
     colormap_bins: int = 256,
     expression: str = "b1",
+    resampling_method: str = "bilinear",
 ) -> bytes:
     """
     Render a PNG tile from a COG using TiTiler with bilinear resampling and a colormap.
@@ -49,7 +50,7 @@ def _render_tile(
         "tile_format": ImageType.png,
         "scale_range": [min_value, max_value],
         "colormap_bins": colormap_bins,
-        "resampling_method": "bilinear",
+        "resampling_method": resampling_method,
         "z": z, "x": x, "y": y
     }
     
@@ -76,6 +77,7 @@ def render_tile(
     use_log_scale: bool = False,
     dataset_type: Optional[str] = None,
     expression: str = "b1",
+    resampling_method: str = "bilinear",
 ) -> bytes:
     """
     Render a PNG tile from a COG using TiTiler with bilinear resampling and a colormap.
@@ -93,5 +95,5 @@ def render_tile(
         dataset_type: Deprecated - use expression parameter instead
         expression: TiTiler expression for data transformation (e.g., "log10(b1+1e-6)")
     """
-    return _render_tile(path, z, x, y, min_value, max_value, colormap_name, colormap_bins, expression) 
+    return _render_tile(path, z, x, y, min_value, max_value, colormap_name, colormap_bins, expression, resampling_method) 
 

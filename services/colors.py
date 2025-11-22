@@ -5,6 +5,7 @@ Color management service for ocean data visualization
 This module handles all color scale registration and management for the TiTiler application,
 including SST, chlorophyll, salinity, and water clarity color scales.
 """
+import math
 from typing import Dict, Tuple, List
 from rio_tiler.colormap import cmap as default_cmap
 from titiler.core.dependencies import create_colormap_dependency
@@ -59,48 +60,54 @@ SST_COLORS_SALTY_VIBES = [
     '#cf0003', '#be000a', '#ad0011', '#9c0018', '#8b001f'
 ]
 
-# Chlorophyll color scheme optimized for log10 scaling
-# Minimal purple/pink, emphasizes lower ranges with more color stops
-CHLOROPHYLL_COLORS = [
-    # Ultra-low: Minimal purple, quick transition to deep blues (0.01-0.05 mg/m³)
-    '#6633CC',  # Subtle purple-blue (minimal pink)
-    
-    # Deep blues for clear ocean (0.05-0.10 mg/m³)
-    '#0D1F6D',  # Deep indigo - where most of your data starts
-    '#0D1F6D',  # Repeat for emphasis
-    '#1E3A8A',  # Deep blue
-    '#1E3A8A',  # Repeat
-    '#1E40AF',  # Strong blue
-    '#1E40AF',  # Repeat
-    
-    # Bright blues (0.15-0.30 mg/m³)
-    '#2196F3',  # Professional bright blue
-    '#2196F3',  # Repeat
-    '#3B82F6',  # Light blue
-    
-    # Cyan transition (0.40-0.70 mg/m³)
-    '#00BCD4',  # Cyan
-    '#00BCD4',  # Repeat
-    '#00ACC1',  # Deeper cyan
-    
-    # Teal-green (0.85-1.50 mg/m³)
-    '#00897B',  # Teal-green
-    '#26A69A',  # Teal
-    
-    # Green (1.70-3.00 mg/m³)
-    '#4CAF50',  # Green - typical coastal
-    '#4CAF50',  # Repeat
-    '#66BB6A',  # Bright green
-    
-    # Yellow-green to yellow (3.00-6.00 mg/m³)
-    '#9CCC65',  # Yellow-green
-    '#C0CA33',  # Lime
-    '#FDD835',  # Yellow
-    
-    # Orange (6.00-8.00 mg/m³)
-    '#FFB300',  # Amber-orange
-    '#D35400',  # Deep orange
+# Chlorophyll color scheme - exact Matplotlib specification with 39 color stops
+# Colors positioned in log10 space for smooth transitions (0.01 to 8.0 mg/m³)
+# Each color is paired with its chlorophyll value (mg/m³) for log10 positioning
+CHLOROPHYLL_COLOR_STOPS = [
+    # (chlorophyll_value_mg_per_m3, hex_color)
+    (0.01, '#E040E0'),  # Ultra-clear Gulf Stream
+    (0.02, '#9966CC'),  # Purple transition
+    (0.03, '#6633CC'),  # Purple-blue blend
+    (0.04, '#39299C'),  # Interpolated
+    (0.05, '#0D1F6D'),  # Deep indigo blue
+    (0.06, '#1759A9'),  # Interpolated
+    (0.07, '#1E3A8A'),  # Deep blue
+    (0.08, '#1E3D9C'),  # Interpolated
+    (0.09, '#1E3FA5'),  # Interpolated
+    (0.10, '#1E40AF'),  # Strong blue
+    (0.15, '#1E68D9'),  # Interpolated
+    (0.20, '#2196F3'),  # Professional blue
+    (0.25, '#2D89F4'),  # Interpolated
+    (0.30, '#3B82F6'),  # Light blue
+    (0.35, '#4A9FE5'),  # Interpolated
+    (0.40, '#59BCE5'),  # Interpolated
+    (0.45, '#68D9D4'),  # Interpolated
+    (0.50, '#00BCD4'),  # Cyan
+    (0.60, '#00B4C8'),  # Interpolated
+    (0.70, '#00ACC1'),  # Deeper cyan
+    (0.80, '#007B9E'),  # Interpolated
+    (0.90, '#005C7F'),  # Interpolated
+    (1.00, '#00897B'),  # Teal-green
+    (1.25, '#0F8A8D'),  # Interpolated
+    (1.50, '#26A69A'),  # Teal
+    (1.75, '#39B275'),  # Interpolated
+    (2.00, '#4CAF50'),  # Green
+    (2.50, '#59B85D'),  # Interpolated
+    (3.00, '#66BB6A'),  # Bright green
+    (3.50, '#7AC38F'),  # Interpolated
+    (4.00, '#9CCC65'),  # Yellow-green
+    (4.50, '#AED64F'),  # Interpolated
+    (5.00, '#C0CA33'),  # Lime
+    (5.50, '#DFE11A'),  # Interpolated
+    (6.00, '#FDD835'),  # Yellow
+    (6.50, '#FEC51A'),  # Interpolated
+    (7.00, '#FFB300'),  # Amber-orange
+    (7.50, '#FA9700'),  # Interpolated
+    (8.00, '#F57C00'),  # Deep orange
 ]
+
+# Extract just the colors for backward compatibility (used by other colormaps)
+CHLOROPHYLL_COLORS = [color for _, color in CHLOROPHYLL_COLOR_STOPS]
 # Salinity color scale - Deep indigo/blue through cyan/teal to green to yellow
 # Generic name: flow (smooth flowing transition from cool to warm)
 SALINITY_COLORS = [
@@ -265,12 +272,90 @@ def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> 
     
     return continuous_map
 
+def create_log10_positioned_colormap(
+    value_color_pairs: List[Tuple[float, str]], 
+    num_colors: int = 256,
+    log_min: float = -2.0,
+    log_max: float = 0.9030899869919435
+) -> Dict[int, Tuple[int, int, int, int]]:
+    """
+    Create a colormap with colors positioned at their log10 values.
+    
+    Args:
+        value_color_pairs: List of (chlorophyll_value_mg_per_m3, hex_color) tuples
+        num_colors: Number of colors in output colormap (default 256)
+        log_min: Minimum log10 value (default -2.0 = log10(0.01))
+        log_max: Maximum log10 value (default 0.903 = log10(8.0))
+    
+    Returns:
+        Dict mapping colormap index (0-255) to RGBA tuple
+    """
+    # Convert hex colors to RGB
+    rgb_stops = [(val, hex_to_rgb(color)) for val, color in value_color_pairs]
+    
+    # Convert chlorophyll values to log10 and map to colormap indices
+    log_range = log_max - log_min
+    
+    # Create mapping of colormap index to RGB color
+    colormap = {}
+    
+    # Pre-compute log10 values for all stops and their exact indices
+    log_stops = []
+    stop_indices = {}  # Map exact stop indices to colors
+    
+    for val, rgb in rgb_stops:
+        log_stop = math.log10(val) if val > 0 else log_min
+        # Calculate exact index for this stop
+        idx = int(((log_stop - log_min) / log_range) * (num_colors - 1))
+        # Clamp to valid range
+        idx = max(0, min(num_colors - 1, idx))
+        log_stops.append((log_stop, rgb))
+        stop_indices[idx] = rgb
+    
+    # For each colormap index, find which segment it falls in and interpolate
+    for idx in range(num_colors):
+        # If this is an exact stop index, use the exact color
+        if idx in stop_indices:
+            colormap[idx] = (*stop_indices[idx], 255)
+            continue
+        
+        # Map index to log10 value
+        log_val = log_min + (idx / (num_colors - 1)) * log_range
+        
+        # Find the two stops that bracket this log10 value
+        for i in range(len(log_stops) - 1):
+            log1, rgb1 = log_stops[i]
+            log2, rgb2 = log_stops[i + 1]
+            
+            if log1 <= log_val <= log2:
+                # Interpolate between the two colors
+                if log2 == log1:
+                    t = 0.0
+                else:
+                    t = (log_val - log1) / (log2 - log1)
+                
+                r = int(rgb1[0] * (1 - t) + rgb2[0] * t)
+                g = int(rgb1[1] * (1 - t) + rgb2[1] * t)
+                b = int(rgb1[2] * (1 - t) + rgb2[2] * t)
+                
+                colormap[idx] = (r, g, b, 255)
+                break
+        else:
+            # Outside range - use closest stop
+            if log_val < log_stops[0][0]:
+                colormap[idx] = (*log_stops[0][1], 255)
+            else:
+                colormap[idx] = (*log_stops[-1][1], 255)
+    
+    return colormap
+
 def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     """Load and register all custom colormaps."""
     # Generate the continuous colormaps
     sst_colormap = create_continuous_colormap(SST_COLORS_HIGH_CONTRAST, 256)
     sst_salty_vibes_colormap = create_continuous_colormap(SST_COLORS_SALTY_VIBES, 256)
-    chlorophyll_colormap = create_continuous_colormap(CHLOROPHYLL_COLORS, 256)
+    # Chlorophyll colormap positioned in log10 space to match Matplotlib
+    chlorophyll_colormap = create_log10_positioned_colormap(CHLOROPHYLL_COLOR_STOPS, 256)
     salinity_colormap = create_continuous_colormap(SALINITY_COLORS, 256)
     # Note: salinity_colormap is also registered as "flow" below for generic use
     water_clarity_colormap = create_continuous_colormap(WATER_CLARITY_COLORS, 256)
