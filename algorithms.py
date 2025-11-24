@@ -6,6 +6,7 @@ This module contains custom image processing algorithms that can be applied
 to COG data before rescaling and colormapping.
 """
 import numpy
+from scipy import ndimage
 from rio_tiler.models import ImageData
 from titiler.core.algorithm.base import BaseAlgorithm
 
@@ -386,20 +387,22 @@ class ChlorophyllSmoothMapper(BaseAlgorithm):
 
 
 class OceanMask(BaseAlgorithm):
-    """Make values outside specified range transparent.
+    """Make values outside specified range transparent with smooth edges.
 
     This algorithm marks pixels outside the specified min/max range as invalid,
-    making them transparent in the final output. It's memory efficient because
-    it only modifies the mask, not the data itself, allowing rescale to work
-    properly with the original temperature values.
+    making them transparent in the final output. The edges are smoothed using
+    a Gaussian blur on the mask to create soft transitions instead of harsh edges.
+    It's memory efficient because it only modifies the mask, not the data itself,
+    allowing rescale to work properly with the original temperature values.
 
     Example usage:
-        ?algorithm=ocean_mask&algorithm_params={"min_temp":15.0,"max_temp":25.0}
+        ?algorithm=ocean_mask&algorithm_params={"min_temp":15.0,"max_temp":25.0,"edge_sigma":1.5}
     """
 
     # Algorithm parameters
     min_temp: float = -10.0  # Minimum temperature to keep visible
     max_temp: float = 40.0   # Maximum temperature to keep visible
+    edge_sigma: float = 1.5  # Gaussian blur sigma for edge smoothing (0 = no smoothing)
 
     # Metadata
     input_nbands: int = 1
@@ -408,13 +411,13 @@ class OceanMask(BaseAlgorithm):
 
     def __call__(self, img: ImageData) -> ImageData:
         """
-        Mark out-of-range pixels as invalid.
+        Mark out-of-range pixels as invalid with smooth edges.
 
         IMPORTANT: We only modify the mask, NOT the data.
         This keeps memory efficient and lets rescale work properly.
         """
         # Get existing mask if present (e.g., from NoData values in COG)
-        existing_mask = img.array.mask if numpy.ma.is_masked(img.array) else False
+        existing_mask = img.array.mask if numpy.ma.is_masked(img.array) else numpy.zeros_like(img.array, dtype=bool)
 
         # Create mask for out-of-range temperatures
         # True = invalid (masked/transparent), False = valid (visible)
@@ -423,6 +426,20 @@ class OceanMask(BaseAlgorithm):
         # Combine existing mask with temperature range mask
         # Pixel is masked if EITHER it was already masked OR outside temp range
         combined_mask = existing_mask | temp_range_mask
+
+        # Smooth edges if edge_sigma > 0
+        if self.edge_sigma > 0:
+            # Convert boolean mask to float (0.0 = visible, 1.0 = masked)
+            # This allows us to apply Gaussian blur for smooth transitions
+            mask_float = combined_mask.astype(numpy.float32)
+            
+            # Apply Gaussian blur to create soft edges
+            # sigma controls the smoothness (larger = smoother, but more edge bleed)
+            smoothed_mask = ndimage.gaussian_filter(mask_float, sigma=self.edge_sigma)
+            
+            # Convert back to boolean mask (threshold at 0.5)
+            # Pixels with smoothed value > 0.5 become masked
+            combined_mask = smoothed_mask > 0.5
 
         # Create masked array - data stays intact, only mask changes
         masked_data = numpy.ma.MaskedArray(img.array, mask=combined_mask)
