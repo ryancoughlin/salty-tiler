@@ -6,7 +6,7 @@ This module handles all color scale registration and management for the TiTiler 
 including SST, chlorophyll, salinity, and water clarity color scales.
 """
 import math
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple, List, Final
 from rio_tiler.colormap import cmap as default_cmap
 from titiler.core.dependencies import create_colormap_dependency
 
@@ -234,6 +234,24 @@ BOUNDARY_FIRE_COLORS = [
     '#191970'   # Midnight blue
 ]
 
+# Magnitude colors - thermal/inferno style for front strength visualization
+# Range: 0.0-0.25 per day (stretching rate)
+# Generic name: magnitude (dataset-agnostic thermal/inferno gradient)
+MAGNITUDE_COLORS: Final[List[str]] = [
+    '#1a237e', '#283593', '#3949ab', '#5c6bc0',  # Deep indigo (very weak fronts)
+    '#7986cb', '#9fa8da', '#c5cae9', '#e8eaf6',  # Light indigo to lavender
+    '#f3e5f5', '#e1bee7', '#ce93d8', '#ba68c8',  # Purple transition
+    '#ab47bc', '#9c27b0', '#8e24aa', '#7b1fa2',  # Purple to magenta
+    '#6a1b9a', '#4a148c', '#3f51b5', '#2196f3',  # Deep purple to blue
+    '#03a9f4', '#00bcd4', '#00acc1', '#0097a7',  # Cyan to teal
+    '#00838f', '#006064', '#004d40', '#1b5e20',  # Dark teal to green
+    '#2e7d32', '#388e3c', '#43a047', '#4caf50',  # Green transition
+    '#66bb6a', '#81c784', '#a5d6a7', '#c8e6c9',  # Light green
+    '#e8f5e8', '#fff3e0', '#ffe0b2', '#ffcc80',  # Light yellow
+    '#ffb74d', '#ff9800', '#f57c00', '#ef6c00',  # Orange transition
+    '#e65100', '#d84315', '#bf360c', '#a30000'   # Deep red (strong fronts)
+]
+
 def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> Dict[int, Tuple[int, int, int, int]]:
     """Create a continuous colormap by interpolating between colors in the list."""
     # Convert hex colors to RGB
@@ -365,6 +383,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     currents_colormap = create_continuous_colormap(CURRENT_COLORS, 256)
     bathymetry_colormap = create_continuous_colormap(BATHYMETRY_COLORS, 256)
     boundary_fire_colormap = create_continuous_colormap(BOUNDARY_FIRE_COLORS, 256)
+    magnitude_colormap = create_continuous_colormap(MAGNITUDE_COLORS, 256)
 
     # Register custom colormaps
     custom_colormaps = {
@@ -380,6 +399,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
         "currents": currents_colormap,
         "bathymetry": bathymetry_colormap,
         "boundary_fire": boundary_fire_colormap,
+        "magnitude": magnitude_colormap,  # Generic dataset-agnostic name (thermal/inferno style gradient)
     }
     
     return custom_colormaps
