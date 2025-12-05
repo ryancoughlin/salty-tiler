@@ -252,6 +252,65 @@ MAGNITUDE_COLORS: Final[List[str]] = [
     '#e65100', '#d84315', '#bf360c', '#a30000'   # Deep red (strong fronts)
 ]
 
+# Overlay color scales - Single-color monochromatic scales with light tints at edges
+# Designed for overlaying small bands of data on top of other datasets (e.g., SST)
+# Light edges allow visibility of overlaps when multiple overlay bands are used
+
+# Purple overlay - Light purple tints at edges, full purple in middle
+PURPLE_OVERLAY_COLORS = [
+    '#f0e0ff',  # Very light purple (start)
+    '#e0c0ff',  # Light purple
+    '#c8a2c8',  # Medium purple
+    '#8b00ff',  # Full purple (middle)
+    '#c8a2c8',  # Medium purple
+    '#e0c0ff',  # Light purple
+    '#f0e0ff'   # Very light purple (end)
+]
+
+# Magenta overlay - Light magenta tints at edges, full magenta in middle
+MAGENTA_OVERLAY_COLORS = [
+    '#ffe0ff',  # Very light magenta (start)
+    '#ffc0ff',  # Light magenta
+    '#ff80ff',  # Medium magenta
+    '#ff00ff',  # Full magenta (middle)
+    '#ff80ff',  # Medium magenta
+    '#ffc0ff',  # Light magenta
+    '#ffe0ff'   # Very light magenta (end)
+]
+
+# Cyan overlay - Light cyan tints at edges, full cyan in middle
+CYAN_OVERLAY_COLORS = [
+    '#e0ffff',  # Very light cyan (start)
+    '#c0ffff',  # Light cyan
+    '#80ffff',  # Medium cyan
+    '#00ffff',  # Full cyan (middle)
+    '#80ffff',  # Medium cyan
+    '#c0ffff',  # Light cyan
+    '#e0ffff'   # Very light cyan (end)
+]
+
+# Yellow overlay - Light yellow tints at edges, full yellow in middle
+YELLOW_OVERLAY_COLORS = [
+    '#ffffe0',  # Very light yellow (start)
+    '#ffffc0',  # Light yellow
+    '#ffff80',  # Medium yellow
+    '#ffff00',  # Full yellow (middle)
+    '#ffff80',  # Medium yellow
+    '#ffffc0',  # Light yellow
+    '#ffffe0'   # Very light yellow (end)
+]
+
+# Lime overlay - Light lime tints at edges, full lime in middle
+LIME_OVERLAY_COLORS = [
+    '#f0ffe0',  # Very light lime (start)
+    '#e0ffc0',  # Light lime
+    '#c0ff80',  # Medium lime
+    '#80ff00',  # Full lime (middle)
+    '#c0ff80',  # Medium lime
+    '#e0ffc0',  # Light lime
+    '#f0ffe0'   # Very light lime (end)
+]
+
 def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> Dict[int, Tuple[int, int, int, int]]:
     """Create a continuous colormap by interpolating between colors in the list."""
     # Convert hex colors to RGB
@@ -384,6 +443,13 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     bathymetry_colormap = create_continuous_colormap(BATHYMETRY_COLORS, 256)
     boundary_fire_colormap = create_continuous_colormap(BOUNDARY_FIRE_COLORS, 256)
     magnitude_colormap = create_continuous_colormap(MAGNITUDE_COLORS, 256)
+    
+    # Generate overlay colormaps (single-color scales with light edges for overlaying)
+    purple_overlay_colormap = create_continuous_colormap(PURPLE_OVERLAY_COLORS, 256)
+    magenta_overlay_colormap = create_continuous_colormap(MAGENTA_OVERLAY_COLORS, 256)
+    cyan_overlay_colormap = create_continuous_colormap(CYAN_OVERLAY_COLORS, 256)
+    yellow_overlay_colormap = create_continuous_colormap(YELLOW_OVERLAY_COLORS, 256)
+    lime_overlay_colormap = create_continuous_colormap(LIME_OVERLAY_COLORS, 256)
 
     # Register custom colormaps
     custom_colormaps = {
@@ -400,6 +466,11 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
         "bathymetry": bathymetry_colormap,
         "boundary_fire": boundary_fire_colormap,
         "magnitude": magnitude_colormap,  # Generic dataset-agnostic name (thermal/inferno style gradient)
+        "purple": purple_overlay_colormap,  # Single-color purple scale with light edges for overlaying
+        "magenta": magenta_overlay_colormap,  # Single-color magenta scale with light edges for overlaying
+        "cyan": cyan_overlay_colormap,  # Single-color cyan scale with light edges for overlaying
+        "yellow": yellow_overlay_colormap,  # Single-color yellow scale with light edges for overlaying
+        "lime": lime_overlay_colormap,  # Single-color lime scale with light edges for overlaying
     }
     
     return custom_colormaps
