@@ -252,79 +252,74 @@ MAGNITUDE_COLORS: Final[List[str]] = [
     '#e65100', '#d84315', '#bf360c', '#a30000'   # Deep red (strong fronts)
 ]
 
-# Overlay color scales - Single-color monochromatic scales with very light edges
+# Overlay color scales - Single-color monochromatic gradients
 # Designed for overlaying small bands of data on top of other datasets (e.g., SST)
-# Very light edges (tiny sliver) with high contrast, most of scale is main color
-# Weighted heavily toward main color with quick transitions at edges
+# Light color at edges transitions to darkest, most saturated color in middle
+# Smooth gradient from light → dark saturated → light
 
-# Purple overlay - Very light edge sliver, full purple dominates
+# Purple overlay - Light purple at edges, darkest saturated purple in middle
 PURPLE_OVERLAY_COLORS = [
-    '#fefbff',  # Nearly white with tiny purple hint (edge sliver)
-    '#f8f0ff',  # Very light purple
-    '#6a00cc',  # Dark saturated purple (dominates most of scale)
-    '#6a00cc',  # Dark saturated purple
-    '#6a00cc',  # Dark saturated purple
-    '#6a00cc',  # Dark saturated purple
-    '#6a00cc',  # Dark saturated purple
-    '#6a00cc',  # Dark saturated purple
-    '#f8f0ff',  # Very light purple
-    '#fefbff'   # Nearly white with tiny purple hint (edge sliver)
+    '#f0e0ff',  # Light purple (edge)
+    '#e0c0ff',  # Medium-light purple
+    '#c8a2c8',  # Medium purple
+    '#9d4edd',  # Medium-dark purple
+    '#6a00cc',  # Darkest saturated purple (middle)
+    '#9d4edd',  # Medium-dark purple
+    '#c8a2c8',  # Medium purple
+    '#e0c0ff',  # Medium-light purple
+    '#f0e0ff'   # Light purple (edge)
 ]
 
-# Magenta overlay - Very light edge sliver, full magenta dominates
+# Magenta overlay - Light magenta at edges, darkest saturated magenta in middle
 MAGENTA_OVERLAY_COLORS = [
-    '#fffbfe',  # Nearly white with tiny magenta hint (edge sliver)
-    '#fff0ff',  # Very light magenta
-    '#cc00cc',  # Dark saturated magenta (dominates most of scale)
-    '#cc00cc',  # Dark saturated magenta
-    '#cc00cc',  # Dark saturated magenta
-    '#cc00cc',  # Dark saturated magenta
-    '#cc00cc',  # Dark saturated magenta
-    '#cc00cc',  # Dark saturated magenta
-    '#fff0ff',  # Very light magenta
-    '#fffbfe'   # Nearly white with tiny magenta hint (edge sliver)
+    '#ffe0ff',  # Light magenta (edge)
+    '#ffc0ff',  # Medium-light magenta
+    '#ff80ff',  # Medium magenta
+    '#e600e6',  # Medium-dark magenta
+    '#990099',  # Darkest saturated magenta (middle)
+    '#e600e6',  # Medium-dark magenta
+    '#ff80ff',  # Medium magenta
+    '#ffc0ff',  # Medium-light magenta
+    '#ffe0ff'   # Light magenta (edge)
 ]
 
-# Cyan overlay - Very light edge sliver, full cyan dominates
+# Cyan overlay - Light cyan at edges, darkest saturated cyan in middle
 CYAN_OVERLAY_COLORS = [
-    '#fbffff',  # Nearly white with tiny cyan hint (edge sliver)
-    '#f0ffff',  # Very light cyan
-    '#00b3b3',  # Dark saturated cyan/teal (dominates most of scale)
-    '#00b3b3',  # Dark saturated cyan/teal
-    '#00b3b3',  # Dark saturated cyan/teal
-    '#00b3b3',  # Dark saturated cyan/teal
-    '#00b3b3',  # Dark saturated cyan/teal
-    '#00b3b3',  # Dark saturated cyan/teal
-    '#f0ffff',  # Very light cyan
-    '#fbffff'   # Nearly white with tiny cyan hint (edge sliver)
+    '#e0ffff',  # Light cyan (edge)
+    '#c0ffff',  # Medium-light cyan
+    '#80ffff',  # Medium cyan
+    '#00cccc',  # Medium-dark cyan
+    '#008080',  # Darkest saturated cyan/teal (middle)
+    '#00cccc',  # Medium-dark cyan
+    '#80ffff',  # Medium cyan
+    '#c0ffff',  # Medium-light cyan
+    '#e0ffff'   # Light cyan (edge)
 ]
 
-# Yellow overlay - Very light edge sliver, full yellow dominates
+# Yellow overlay - Light yellow at edges, darkest saturated yellow in middle
 YELLOW_OVERLAY_COLORS = [
-    '#fffffb',  # Nearly white with tiny yellow hint (edge sliver)
-    '#fffff0',  # Very light yellow
-    '#cccc00',  # Dark saturated yellow/gold (dominates most of scale)
-    '#cccc00',  # Dark saturated yellow/gold
-    '#cccc00',  # Dark saturated yellow/gold
-    '#cccc00',  # Dark saturated yellow/gold
-    '#cccc00',  # Dark saturated yellow/gold
-    '#cccc00',  # Dark saturated yellow/gold
-    '#fffff0',  # Very light yellow
-    '#fffffb'   # Nearly white with tiny yellow hint (edge sliver)
+    '#ffffe0',  # Light yellow (edge)
+    '#ffffc0',  # Medium-light yellow
+    '#ffff80',  # Medium yellow
+    '#cccc00',  # Medium-dark yellow/gold
+    '#999900',  # Darkest saturated yellow/gold (middle)
+    '#cccc00',  # Medium-dark yellow/gold
+    '#ffff80',  # Medium yellow
+    '#ffffc0',  # Medium-light yellow
+    '#ffffe0'   # Light yellow (edge)
 ]
 
-# Lime overlay - Very light edge sliver, full lime dominates
+# Lime overlay - Light lime at edges, darkest saturated lime in middle
 LIME_OVERLAY_COLORS = [
-    '#fbfffb',  # Nearly white with tiny lime hint (edge sliver)
-    '#f0fff0',  # Very light lime
-    '#66cc00',  # Dark saturated lime/green (dominates most of scale)
-    '#66cc00',  # Dark saturated lime/green
-    '#66cc00',  # Dark saturated lime/green
-    '#66cc00',  # Dark saturated lime/green
-    '#66cc00',  # Dark saturated lime/green
-    '#66cc00',  # Dark saturated lime/green
-    '#f0fff0',  # Very light lime
-    '#fbfffb'   # Nearly white with tiny lime hint (edge sliver)
+    '#f0ffe0',  # Light lime (edge)
+    '#e0ffc0',  # Medium-light lime
+    '#c0ff80',  # Medium lime
+    '#99cc00',  # Medium-dark lime
+    '#66aa00',  # Darkest saturated lime/green (middle)
+    '#99cc00',  # Medium-dark lime
+    '#c0ff80',  # Medium lime
+    '#e0ffc0',  # Medium-light lime
+    '#f0ffe0'   # Light lime (edge)
 ]
 
 def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> Dict[int, Tuple[int, int, int, int]]:
