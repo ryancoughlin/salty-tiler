@@ -264,13 +264,15 @@ class ChlorophyllRangeMapper(BaseAlgorithm):
         for channel in range(3):
             rgb[channel, max_mask] = self.colors_rgb[-1][channel]
 
-        # Handle NoData values (set to transparent/black)
+        # Create masked array for proper transparency
         if nodata_mask is not None:
-            for channel in range(3):
-                rgb[channel, nodata_mask] = 0
+            rgb_mask = numpy.broadcast_to(nodata_mask, rgb.shape)
+            rgb_masked = numpy.ma.MaskedArray(rgb, mask=rgb_mask)
+        else:
+            rgb_masked = rgb
 
         return ImageData(
-            rgb,
+            rgb_masked,
             assets=img.assets,
             crs=img.crs,
             bounds=img.bounds,
@@ -375,8 +377,15 @@ class ChlorophyllSmoothMapper(BaseAlgorithm):
                     for channel in range(3):
                         rgb[channel, i, j] = color_rgb[channel]
 
+        # Create masked array for proper transparency
+        if nodata_mask is not None:
+            rgb_mask = numpy.broadcast_to(nodata_mask, rgb.shape)
+            rgb_masked = numpy.ma.MaskedArray(rgb, mask=rgb_mask)
+        else:
+            rgb_masked = rgb
+
         return ImageData(
-            rgb,
+            rgb_masked,
             assets=img.assets,
             crs=img.crs,
             bounds=img.bounds,
@@ -568,11 +577,13 @@ class ChlorophyllLog10RGB(BaseAlgorithm):
             b_interp.astype(numpy.uint8),
         ], axis=0)
 
-        # Apply NoData mask (set to 0 for transparency)
-        rgb[:, nodata_mask] = 0
+        # Create masked array for proper transparency
+        # Broadcast 2D nodata_mask to all 3 RGB bands
+        rgb_mask = numpy.broadcast_to(nodata_mask, rgb.shape)
+        rgb_masked = numpy.ma.MaskedArray(rgb, mask=rgb_mask)
 
         return ImageData(
-            rgb,
+            rgb_masked,
             assets=img.assets,
             crs=img.crs,
             bounds=img.bounds,
