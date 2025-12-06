@@ -241,7 +241,7 @@ BOUNDARY_FIRE_COLORS = [
 # Generic name: magnitude (dataset-agnostic thermal/inferno gradient)
 # Simplified to 14 colors for cleaner visualization with smooth dark-to-light-to-dark progression
 MAGNITUDE_COLORS: Final[List[str]] = [
-    '#000000',  # Black (very low FSLE - minimal separation)
+    '#0d1f6d',  # Dark navy blue (very low FSLE - minimal separation, light enough for bathymetry visibility)
     '#1a237e',  # Deep indigo
     '#3949ab',  # Medium indigo
     '#5c6bc0',  # Light indigo
