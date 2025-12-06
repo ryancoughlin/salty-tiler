@@ -254,72 +254,52 @@ MAGNITUDE_COLORS: Final[List[str]] = [
 
 # Overlay color scales - Single-color monochromatic gradients
 # Designed for overlaying small bands of data on top of other datasets (e.g., SST)
-# Light color at edges transitions to darkest, most saturated color in middle
-# Smooth gradient from light → dark saturated → light
+# Light color at start transitions to darkest, most saturated color at end
+# Smooth gradient from light → dark saturated
 
-# Purple overlay - Light purple at edges, darkest saturated purple in middle
+# Purple overlay - Light purple to darkest saturated purple
 PURPLE_OVERLAY_COLORS = [
-    '#f0e0ff',  # Light purple (edge)
+    '#f0e0ff',  # Light purple (start)
     '#e0c0ff',  # Medium-light purple
     '#c8a2c8',  # Medium purple
     '#9d4edd',  # Medium-dark purple
-    '#6a00cc',  # Darkest saturated purple (middle)
-    '#9d4edd',  # Medium-dark purple
-    '#c8a2c8',  # Medium purple
-    '#e0c0ff',  # Medium-light purple
-    '#f0e0ff'   # Light purple (edge)
+    '#6a00cc'   # Darkest saturated purple (end)
 ]
 
-# Magenta overlay - Light magenta at edges, darkest saturated magenta in middle
+# Magenta overlay - Light magenta to darkest saturated magenta
 MAGENTA_OVERLAY_COLORS = [
-    '#ffe0ff',  # Light magenta (edge)
+    '#ffe0ff',  # Light magenta (start)
     '#ffc0ff',  # Medium-light magenta
     '#ff80ff',  # Medium magenta
     '#e600e6',  # Medium-dark magenta
-    '#990099',  # Darkest saturated magenta (middle)
-    '#e600e6',  # Medium-dark magenta
-    '#ff80ff',  # Medium magenta
-    '#ffc0ff',  # Medium-light magenta
-    '#ffe0ff'   # Light magenta (edge)
+    '#990099'   # Darkest saturated magenta (end)
 ]
 
-# Cyan overlay - Light cyan at edges, darkest saturated cyan in middle
+# Cyan overlay - Light cyan to darkest saturated cyan
 CYAN_OVERLAY_COLORS = [
-    '#e0ffff',  # Light cyan (edge)
+    '#e0ffff',  # Light cyan (start)
     '#c0ffff',  # Medium-light cyan
     '#80ffff',  # Medium cyan
     '#00cccc',  # Medium-dark cyan
-    '#008080',  # Darkest saturated cyan/teal (middle)
-    '#00cccc',  # Medium-dark cyan
-    '#80ffff',  # Medium cyan
-    '#c0ffff',  # Medium-light cyan
-    '#e0ffff'   # Light cyan (edge)
+    '#008080'   # Darkest saturated cyan/teal (end)
 ]
 
-# Yellow overlay - Light yellow at edges, darkest saturated yellow in middle
+# Yellow overlay - Light yellow to darkest saturated yellow
 YELLOW_OVERLAY_COLORS = [
-    '#ffffe0',  # Light yellow (edge)
+    '#ffffe0',  # Light yellow (start)
     '#ffffc0',  # Medium-light yellow
     '#ffff80',  # Medium yellow
     '#cccc00',  # Medium-dark yellow/gold
-    '#999900',  # Darkest saturated yellow/gold (middle)
-    '#cccc00',  # Medium-dark yellow/gold
-    '#ffff80',  # Medium yellow
-    '#ffffc0',  # Medium-light yellow
-    '#ffffe0'   # Light yellow (edge)
+    '#999900'   # Darkest saturated yellow/gold (end)
 ]
 
-# Lime overlay - Light lime at edges, darkest saturated lime in middle
+# Lime overlay - Light lime to darkest saturated lime
 LIME_OVERLAY_COLORS = [
-    '#f0ffe0',  # Light lime (edge)
+    '#f0ffe0',  # Light lime (start)
     '#e0ffc0',  # Medium-light lime
     '#c0ff80',  # Medium lime
     '#99cc00',  # Medium-dark lime
-    '#66aa00',  # Darkest saturated lime/green (middle)
-    '#99cc00',  # Medium-dark lime
-    '#c0ff80',  # Medium lime
-    '#e0ffc0',  # Medium-light lime
-    '#f0ffe0'   # Light lime (edge)
+    '#66aa00'   # Darkest saturated lime/green (end)
 ]
 
 def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> Dict[int, Tuple[int, int, int, int]]:
