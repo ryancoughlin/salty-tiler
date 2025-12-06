@@ -234,22 +234,27 @@ BOUNDARY_FIRE_COLORS = [
     '#191970'   # Midnight blue
 ]
 
-# Magnitude colors - thermal/inferno style for front strength visualization
-# Range: 0.0-0.25 per day (stretching rate)
+# Magnitude colors - simplified thermal/inferno style for FSLE visualization
+# FSLE (Finite-Size Lyapunov Exponent) measures particle separation rates in flows,
+# highlighting regions of high mixing and transport barriers.
+# Range: typically 0.0-0.25 per day (stretching rate)
 # Generic name: magnitude (dataset-agnostic thermal/inferno gradient)
+# Simplified to 14 colors for cleaner visualization with smooth dark-to-light-to-dark progression
 MAGNITUDE_COLORS: Final[List[str]] = [
-    '#1a237e', '#283593', '#3949ab', '#5c6bc0',  # Deep indigo (very weak fronts)
-    '#7986cb', '#9fa8da', '#c5cae9', '#e8eaf6',  # Light indigo to lavender
-    '#f3e5f5', '#e1bee7', '#ce93d8', '#ba68c8',  # Purple transition
-    '#ab47bc', '#9c27b0', '#8e24aa', '#7b1fa2',  # Purple to magenta
-    '#6a1b9a', '#4a148c', '#3f51b5', '#2196f3',  # Deep purple to blue
-    '#03a9f4', '#00bcd4', '#00acc1', '#0097a7',  # Cyan to teal
-    '#00838f', '#006064', '#004d40', '#1b5e20',  # Dark teal to green
-    '#2e7d32', '#388e3c', '#43a047', '#4caf50',  # Green transition
-    '#66bb6a', '#81c784', '#a5d6a7', '#c8e6c9',  # Light green
-    '#e8f5e8', '#fff3e0', '#ffe0b2', '#ffcc80',  # Light yellow
-    '#ffb74d', '#ff9800', '#f57c00', '#ef6c00',  # Orange transition
-    '#e65100', '#d84315', '#bf360c', '#a30000'   # Deep red (strong fronts)
+    '#000000',  # Black (very low FSLE - minimal separation)
+    '#1a237e',  # Deep indigo
+    '#3949ab',  # Medium indigo
+    '#5c6bc0',  # Light indigo
+    '#7986cb',  # Lavender-blue
+    '#9fa8da',  # Light lavender
+    '#c5cae9',  # Very light lavender
+    '#e8eaf6',  # Pale lavender (peak lightness - moderate FSLE)
+    '#fff3e0',  # Pale yellow-orange
+    '#ffcc80',  # Light orange
+    '#ff9800',  # Bright orange
+    '#f57c00',  # Deep orange
+    '#e65100',  # Dark orange-red
+    '#a30000'   # Deep red (high FSLE - strong separation/mixing)
 ]
 
 # Overlay color scales - Single-color monochromatic gradients
