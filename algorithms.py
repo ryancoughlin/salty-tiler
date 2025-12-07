@@ -761,9 +761,12 @@ class GaussianSmooth(BaseAlgorithm):
                 # Normalize: divide smoothed_data by smoothed_weights
                 # This prevents contamination from masked pixels
                 # Use small epsilon to avoid division by zero
+                # Suppress warnings for division by zero (handled by where condition)
+                with numpy.errstate(divide='ignore', invalid='ignore'):
+                    normalized = smoothed_data / smoothed_weights
                 result = numpy.where(
                     smoothed_weights > 1e-6,
-                    smoothed_data / smoothed_weights,
+                    normalized,
                     data_array  # Keep original value where weights too small
                 )
             else:

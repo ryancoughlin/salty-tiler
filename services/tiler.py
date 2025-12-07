@@ -1,6 +1,8 @@
 from typing import Any, Optional
 from titiler.core.factory import TilerFactory
 from titiler.core.resources.enums import ImageType
+from PIL import Image, ImageFilter
+import io
 
 # Import colormap registration
 from services.colors import register_colormaps
@@ -24,6 +26,8 @@ def _render_tile(
     colormap_bins: int = 256,
     expression: str = "b1",
     resampling_method: str = "bilinear",
+    post_process_smooth: bool = False,
+    smooth_radius: int = 3,
 ) -> bytes:
     """
     Render a PNG tile from a COG using TiTiler with bilinear resampling and a colormap.
@@ -65,6 +69,16 @@ def _render_tile(
     # Render tile with TiTiler
     content = cog_tiler.render(**kwargs)
 
+    # Apply post-processing smoothing if requested (WebGL-style interpolation)
+    if post_process_smooth:
+        img = Image.open(io.BytesIO(content))
+        # Apply Gaussian blur to the RGB image (after colormapping)
+        # This creates WebGL-like smooth interpolation
+        img_smooth = img.filter(ImageFilter.GaussianBlur(radius=smooth_radius))
+        buffer = io.BytesIO()
+        img_smooth.save(buffer, format='PNG', optimize=True)
+        return buffer.getvalue()
+
     # Return PNG directly (smoothing handled by algorithms if requested)
     return content
 
@@ -82,12 +96,14 @@ def render_tile(
     dataset_type: Optional[str] = None,
     expression: str = "b1",
     resampling_method: str = "bilinear",
+    post_process_smooth: bool = False,
+    smooth_radius: int = 3,
 ) -> bytes:
     """
     Render a PNG tile from a COG using TiTiler with bilinear resampling and a colormap.
     Returns PNG bytes. Cloudflare handles caching at the edge.
     Supports both local paths and external URLs.
-    
+
     Args:
         path: Path or URL to the COG file
         z, x, y: Tile coordinates
@@ -98,6 +114,8 @@ def render_tile(
         use_log_scale: Deprecated - use expression parameter instead
         dataset_type: Deprecated - use expression parameter instead
         expression: TiTiler expression for data transformation (e.g., "log10(b1+1e-6)")
+        post_process_smooth: Apply Gaussian blur to final PNG for WebGL-style smoothing
+        smooth_radius: Blur radius (1-10, default 3)
     """
-    return _render_tile(path, z, x, y, min_value, max_value, colormap_name, colormap_bins, expression, resampling_method) 
+    return _render_tile(path, z, x, y, min_value, max_value, colormap_name, colormap_bins, expression, resampling_method, post_process_smooth, smooth_radius) 
 
