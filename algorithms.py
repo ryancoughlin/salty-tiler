@@ -6,7 +6,6 @@ This module contains custom image processing algorithms that can be applied
 to COG data before rescaling and colormapping.
 """
 import numpy
-from scipy import ndimage
 from rio_tiler.models import ImageData
 from titiler.core.algorithm.base import BaseAlgorithm
 
@@ -396,22 +395,20 @@ class ChlorophyllSmoothMapper(BaseAlgorithm):
 
 
 class OceanMask(BaseAlgorithm):
-    """Make values outside specified range transparent with smooth edges.
+    """Make values outside specified range transparent.
 
     This algorithm marks pixels outside the specified min/max range as invalid,
-    making them transparent in the final output. The edges are smoothed using
-    a Gaussian blur on the mask to create soft transitions instead of harsh edges.
-    It's memory efficient because it only modifies the mask, not the data itself,
-    allowing rescale to work properly with the original temperature values.
+    making them transparent in the final output. It's memory efficient because
+    it only modifies the mask, not the data itself, allowing rescale to work
+    properly with the original temperature values.
 
     Example usage:
-        ?algorithm=ocean_mask&algorithm_params={"min_temp":15.0,"max_temp":25.0,"edge_sigma":1.5}
+        ?algorithm=ocean_mask&algorithm_params={"min_temp":15.0,"max_temp":25.0}
     """
 
     # Algorithm parameters
     min_temp: float = -10.0  # Minimum temperature to keep visible
     max_temp: float = 40.0   # Maximum temperature to keep visible
-    edge_sigma: float = 1.5  # Gaussian blur sigma for edge smoothing (0 = no smoothing)
 
     # Metadata
     input_nbands: int = 1
@@ -420,13 +417,13 @@ class OceanMask(BaseAlgorithm):
 
     def __call__(self, img: ImageData) -> ImageData:
         """
-        Mark out-of-range pixels as invalid with smooth edges.
+        Mark out-of-range pixels as invalid.
 
         IMPORTANT: We only modify the mask, NOT the data.
         This keeps memory efficient and lets rescale work properly.
         """
         # Get existing mask if present (e.g., from NoData values in COG)
-        existing_mask = img.array.mask if numpy.ma.is_masked(img.array) else numpy.zeros_like(img.array, dtype=bool)
+        existing_mask = img.array.mask if numpy.ma.is_masked(img.array) else False
 
         # Create mask for out-of-range temperatures
         # True = invalid (masked/transparent), False = valid (visible)
@@ -435,20 +432,6 @@ class OceanMask(BaseAlgorithm):
         # Combine existing mask with temperature range mask
         # Pixel is masked if EITHER it was already masked OR outside temp range
         combined_mask = existing_mask | temp_range_mask
-
-        # Smooth edges if edge_sigma > 0
-        if self.edge_sigma > 0:
-            # Convert boolean mask to float (0.0 = visible, 1.0 = masked)
-            # This allows us to apply Gaussian blur for smooth transitions
-            mask_float = combined_mask.astype(numpy.float32)
-            
-            # Apply Gaussian blur to create soft edges
-            # sigma controls the smoothness (larger = smoother, but more edge bleed)
-            smoothed_mask = ndimage.gaussian_filter(mask_float, sigma=self.edge_sigma)
-            
-            # Convert back to boolean mask (threshold at 0.5)
-            # Pixels with smoothed value > 0.5 become masked
-            combined_mask = smoothed_mask > 0.5
 
         # Create masked array - data stays intact, only mask changes
         masked_data = numpy.ma.MaskedArray(img.array, mask=combined_mask)
@@ -679,127 +662,6 @@ class MixedLayerDepthGradient(BaseAlgorithm):
             crs=img.crs,
             bounds=img.bounds,
             band_names=band_names,
-            metadata=img.metadata,
-            cutline_mask=img.cutline_mask,
-        )
-
-
-class GaussianSmooth(BaseAlgorithm):
-    """Apply Gaussian smoothing to eliminate grid artifacts in raster data.
-
-    Smooths raw data BEFORE colormapping using scipy.ndimage.gaussian_filter.
-    Uses edge-preserving technique to avoid bleeding blur into masked areas (NoData/ocean).
-
-    The edge-preserving smoothing works by:
-    1. Creating weight map (1.0 for valid data, 0.0 for masked)
-    2. Smoothing both data and weights separately
-    3. Dividing smoothed_data by smoothed_weights to normalize
-
-    This prevents color bleeding at ocean/land boundaries while fully eliminating
-    grid artifacts in the data itself.
-
-    Parameters:
-        sigma: Gaussian kernel standard deviation (higher = more blur)
-               Default 2.5 provides aggressive smoothing to eliminate grid artifacts
-        mode: Edge handling strategy for scipy.ndimage.gaussian_filter
-              'reflect' (default) mirrors edges without introducing artifacts
-              Other options: 'constant', 'nearest', 'mirror', 'wrap'
-        preserve_edges: If True, applies edge-aware smoothing to avoid
-                       blurring valid data into NoData regions (recommended)
-
-    Usage:
-        ?algorithm=smooth
-        ?algorithm=smooth&algorithm_params={"sigma":1.5}
-        ?algorithm=smooth&algorithm_params={"sigma":2.5,"preserve_edges":false}
-
-    Example (with expression chaining):
-        ?algorithm=smooth&expression=log10(b1+1e-6)&rescale=-2,1&colormap_name=chlorophyll
-    """
-
-    # Algorithm parameters
-    sigma: float = 2.5  # Aggressive smoothing to eliminate grid artifacts
-    mode: str = "reflect"  # Edge handling - mirrors edges
-    preserve_edges: bool = True  # Prevents bleeding into NoData areas
-
-    # Metadata
-    input_nbands: int = 1
-    output_nbands: int = 1
-    output_dtype: str = "float32"
-
-    def __call__(self, img: ImageData) -> ImageData:
-        """Apply Gaussian smoothing to raw data with edge preservation."""
-        data = img.array[0]  # Single band input
-
-        # Extract mask and data
-        if numpy.ma.is_masked(data):
-            nodata_mask = data.mask.copy()
-            data_array = data.data.copy()
-        else:
-            nodata_mask = numpy.isnan(data)
-            data_array = data.copy()
-
-        # Apply smoothing based on whether we have masked pixels
-        if nodata_mask.any():
-            if self.preserve_edges:
-                # Edge-aware smoothing: prevents bleeding into masked areas
-                # Create weight map: 1.0 for valid data, 0.0 for masked
-                weights = (~nodata_mask).astype(numpy.float32)
-                data_filled = numpy.where(nodata_mask, 0.0, data_array)
-
-                # Smooth both data and weights separately
-                smoothed_data = ndimage.gaussian_filter(
-                    data_filled,
-                    sigma=self.sigma,
-                    mode=self.mode
-                )
-                smoothed_weights = ndimage.gaussian_filter(
-                    weights,
-                    sigma=self.sigma,
-                    mode=self.mode
-                )
-
-                # Normalize: divide smoothed_data by smoothed_weights
-                # This prevents contamination from masked pixels
-                # Use small epsilon to avoid division by zero
-                # Suppress warnings for division by zero (handled by where condition)
-                with numpy.errstate(divide='ignore', invalid='ignore'):
-                    normalized = smoothed_data / smoothed_weights
-                result = numpy.where(
-                    smoothed_weights > 1e-6,
-                    normalized,
-                    data_array  # Keep original value where weights too small
-                )
-            else:
-                # Simple mode: fill masked pixels with nearest valid value
-                # Faster but may introduce slight artifacts at boundaries
-                indices = ndimage.distance_transform_edt(
-                    nodata_mask,
-                    return_distances=False,
-                    return_indices=True
-                )
-                data_filled = data_array[tuple(indices)]
-                result = ndimage.gaussian_filter(
-                    data_filled,
-                    sigma=self.sigma,
-                    mode=self.mode
-                )
-        else:
-            # No mask, simple smoothing
-            result = ndimage.gaussian_filter(
-                data_array,
-                sigma=self.sigma,
-                mode=self.mode
-            )
-
-        # Re-apply original mask to preserve transparency
-        masked_result = numpy.ma.MaskedArray(result, mask=nodata_mask)
-
-        return ImageData(
-            masked_result[numpy.newaxis, :, :],  # Add band dimension back
-            assets=img.assets,
-            crs=img.crs,
-            bounds=img.bounds,
-            band_names=img.band_names,
             metadata=img.metadata,
             cutline_mask=img.cutline_mask,
         )

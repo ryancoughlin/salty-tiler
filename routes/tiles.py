@@ -13,8 +13,6 @@ def cog_tile_compatible(
     colormap_name: str = Query(..., description="Colormap name (e.g., sst_high_contrast)"),
     resampling: str = Query("lanczos", description="Resampling method"),
     expression: str = Query("b1", description="TiTiler expression (e.g., log10(b1+1e-6))"),
-    smooth: bool = Query(False, description="Apply WebGL-style smoothing to eliminate grid edges"),
-    smooth_radius: int = Query(3, description="Gaussian blur radius for smoothing (1-10)"),
 ):
     """
     Simple TiTiler-compatible endpoint that passes through all parameters.
@@ -40,8 +38,6 @@ def cog_tile_compatible(
             colormap_bins=256,
             expression=expression,
             resampling_method=resampling,
-            post_process_smooth=smooth,
-            smooth_radius=smooth_radius,
         )
     except Exception as e:
         error_msg = str(e)

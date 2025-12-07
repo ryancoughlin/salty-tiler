@@ -31,7 +31,7 @@ from titiler.mosaic.factory import MosaicTilerFactory
 # Import custom algorithms
 from algorithms import (Log10, Log10Chlorophyll, SqrtChlorophyll, GammaChlorophyll,
                         LinearChlorophyll, ChlorophyllRangeMapper, ChlorophyllSmoothMapper,
-                        OceanMask, ChlorophyllLog10RGB, MixedLayerDepthGradient, GaussianSmooth)
+                        OceanMask, ChlorophyllLog10RGB, MixedLayerDepthGradient)
 
 
 # Register all colormaps
@@ -52,7 +52,6 @@ algorithms: Algorithms = default_algorithms.register({
     "ocean_mask": OceanMask,
     "chlorophyll_log10_rgb": ChlorophyllLog10RGB,
     "mld_gradient": MixedLayerDepthGradient,
-    "smooth": GaussianSmooth,
 })
 
 # Create algorithm dependency
