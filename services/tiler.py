@@ -1,8 +1,6 @@
 from typing import Any, Optional
 from titiler.core.factory import TilerFactory
 from titiler.core.resources.enums import ImageType
-from PIL import Image
-import io
 
 # Import colormap registration
 from services.colors import register_colormaps
@@ -67,12 +65,8 @@ def _render_tile(
     # Render tile with TiTiler
     content = cog_tiler.render(**kwargs)
 
-    # Apply anti-aliasing post-processing
-    img = Image.open(io.BytesIO(content))
-    img_smooth = img.resize(img.size, Image.Resampling.LANCZOS)
-    buffer = io.BytesIO()
-    img_smooth.save(buffer, format='PNG', optimize=True)
-    return buffer.getvalue()
+    # Return PNG directly (smoothing handled by algorithms if requested)
+    return content
 
 def render_tile(
     path: str,

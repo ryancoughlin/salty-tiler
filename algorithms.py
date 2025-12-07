@@ -682,3 +682,121 @@ class MixedLayerDepthGradient(BaseAlgorithm):
             metadata=img.metadata,
             cutline_mask=img.cutline_mask,
         )
+
+
+class GaussianSmooth(BaseAlgorithm):
+    """Apply Gaussian smoothing to eliminate grid artifacts in raster data.
+
+    Smooths raw data BEFORE colormapping using scipy.ndimage.gaussian_filter.
+    Uses edge-preserving technique to avoid bleeding blur into masked areas (NoData/ocean).
+
+    The edge-preserving smoothing works by:
+    1. Creating weight map (1.0 for valid data, 0.0 for masked)
+    2. Smoothing both data and weights separately
+    3. Dividing smoothed_data by smoothed_weights to normalize
+
+    This prevents color bleeding at ocean/land boundaries while fully eliminating
+    grid artifacts in the data itself.
+
+    Parameters:
+        sigma: Gaussian kernel standard deviation (higher = more blur)
+               Default 2.5 provides aggressive smoothing to eliminate grid artifacts
+        mode: Edge handling strategy for scipy.ndimage.gaussian_filter
+              'reflect' (default) mirrors edges without introducing artifacts
+              Other options: 'constant', 'nearest', 'mirror', 'wrap'
+        preserve_edges: If True, applies edge-aware smoothing to avoid
+                       blurring valid data into NoData regions (recommended)
+
+    Usage:
+        ?algorithm=smooth
+        ?algorithm=smooth&algorithm_params={"sigma":1.5}
+        ?algorithm=smooth&algorithm_params={"sigma":2.5,"preserve_edges":false}
+
+    Example (with expression chaining):
+        ?algorithm=smooth&expression=log10(b1+1e-6)&rescale=-2,1&colormap_name=chlorophyll
+    """
+
+    # Algorithm parameters
+    sigma: float = 2.5  # Aggressive smoothing to eliminate grid artifacts
+    mode: str = "reflect"  # Edge handling - mirrors edges
+    preserve_edges: bool = True  # Prevents bleeding into NoData areas
+
+    # Metadata
+    input_nbands: int = 1
+    output_nbands: int = 1
+    output_dtype: str = "float32"
+
+    def __call__(self, img: ImageData) -> ImageData:
+        """Apply Gaussian smoothing to raw data with edge preservation."""
+        data = img.array[0]  # Single band input
+
+        # Extract mask and data
+        if numpy.ma.is_masked(data):
+            nodata_mask = data.mask.copy()
+            data_array = data.data.copy()
+        else:
+            nodata_mask = numpy.isnan(data)
+            data_array = data.copy()
+
+        # Apply smoothing based on whether we have masked pixels
+        if nodata_mask.any():
+            if self.preserve_edges:
+                # Edge-aware smoothing: prevents bleeding into masked areas
+                # Create weight map: 1.0 for valid data, 0.0 for masked
+                weights = (~nodata_mask).astype(numpy.float32)
+                data_filled = numpy.where(nodata_mask, 0.0, data_array)
+
+                # Smooth both data and weights separately
+                smoothed_data = ndimage.gaussian_filter(
+                    data_filled,
+                    sigma=self.sigma,
+                    mode=self.mode
+                )
+                smoothed_weights = ndimage.gaussian_filter(
+                    weights,
+                    sigma=self.sigma,
+                    mode=self.mode
+                )
+
+                # Normalize: divide smoothed_data by smoothed_weights
+                # This prevents contamination from masked pixels
+                # Use small epsilon to avoid division by zero
+                result = numpy.where(
+                    smoothed_weights > 1e-6,
+                    smoothed_data / smoothed_weights,
+                    data_array  # Keep original value where weights too small
+                )
+            else:
+                # Simple mode: fill masked pixels with nearest valid value
+                # Faster but may introduce slight artifacts at boundaries
+                indices = ndimage.distance_transform_edt(
+                    nodata_mask,
+                    return_distances=False,
+                    return_indices=True
+                )
+                data_filled = data_array[tuple(indices)]
+                result = ndimage.gaussian_filter(
+                    data_filled,
+                    sigma=self.sigma,
+                    mode=self.mode
+                )
+        else:
+            # No mask, simple smoothing
+            result = ndimage.gaussian_filter(
+                data_array,
+                sigma=self.sigma,
+                mode=self.mode
+            )
+
+        # Re-apply original mask to preserve transparency
+        masked_result = numpy.ma.MaskedArray(result, mask=nodata_mask)
+
+        return ImageData(
+            masked_result[numpy.newaxis, :, :],  # Add band dimension back
+            assets=img.assets,
+            crs=img.crs,
+            bounds=img.bounds,
+            band_names=img.band_names,
+            metadata=img.metadata,
+            cutline_mask=img.cutline_mask,
+        )
