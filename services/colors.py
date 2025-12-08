@@ -239,7 +239,9 @@ BOUNDARY_FIRE_COLORS = [
 # highlighting regions of high mixing and transport barriers.
 # Range: typically 0.0-0.25 per day (stretching rate)
 # Generic name: magnitude (dataset-agnostic thermal/inferno gradient)
-# Simplified to 14 colors for cleaner visualization with smooth dark-to-light-to-dark progression
+# Enhanced with green hues in the middle for smoother transitions
+# Smooth dark-to-light-to-dark progression: blue → purple → green → yellow → orange → red
+# 15 control points (best practice: 10-16 stops for thermal/inferno-style colormaps)
 MAGNITUDE_COLORS: Final[List[str]] = [
     '#0d1f6d',  # Dark navy blue (very low FSLE - minimal separation, light enough for bathymetry visibility)
     '#1a237e',  # Deep indigo
@@ -249,6 +251,11 @@ MAGNITUDE_COLORS: Final[List[str]] = [
     '#9fa8da',  # Light lavender
     '#c5cae9',  # Very light lavender
     '#e8eaf6',  # Pale lavender (peak lightness - moderate FSLE)
+    '#b2dfdb',  # Light teal-green (green transition)
+    '#4db6ac',  # Bright teal-green
+    '#26a69a',  # Teal (green peak)
+    '#81c784',  # Medium green
+    '#c8e6c9',  # Very pale green
     '#fff3e0',  # Pale yellow-orange
     '#ffcc80',  # Light orange
     '#ff9800',  # Bright orange
