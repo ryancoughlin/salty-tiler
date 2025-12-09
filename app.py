@@ -19,9 +19,6 @@ from titiler.core.errors import DEFAULT_STATUS_CODES, add_exception_handlers
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
-# Import routes
-from routes.tiles import router as tiles_router
-
 # Import color service
 from services.colors import register_colormaps
 
@@ -188,9 +185,6 @@ app.include_router(mosaic.router, prefix="/mosaicjson", tags=["MosaicJSON"])
 
 # Include the colormap router - this creates /colormaps endpoints
 app.include_router(colormap_factory.router, tags=["ColorMaps"])
-
-# Register application-specific routers
-app.include_router(tiles_router)
 
 # Health check endpoint for Docker
 @app.get("/health")
