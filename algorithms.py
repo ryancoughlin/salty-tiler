@@ -70,22 +70,22 @@ class ChlorophyllLog10RGB(BaseAlgorithm):
     directly via vectorized interpolation in log10 space. This matches the quality
     of Matplotlib's LogNorm + 2048-step colormap rendering.
 
-    Range: 0.01-8.0 mg/m³ (log10: -2.0 to 0.903)
+    Default range: 0.01-8.0 mg/m³ (log10: -2.0 to 0.903)
     Color stops: 19 scientifically-defined stops dense in the critical low range
 
-    Usage:
+    Usage (default range):
         /cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url={cog}&algorithm=chlorophyll_log10_rgb
 
+    Usage (custom range):
+        /cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url={cog}&algorithm=chlorophyll_log10_rgb&algorithm_params={"min_value":0.1,"max_value":5.0}
+
     No expression, rescale, or colormap_name needed - everything is handled internally.
+    Values outside the min_value/max_value range are masked (transparent).
     """
 
-    # Data range (mg/m³)
+    # Data range (mg/m³) - configurable via algorithm_params
     min_value: float = 0.01
     max_value: float = 8.0
-
-    # Log10 range bounds
-    log_min: float = -2.0  # log10(0.01)
-    log_max: float = 0.9030899869919435  # log10(8.0)
 
     # 19 color stops from chlor_visualization.md - (chlorophyll_mg_m3, hex_color)
     # Dense in critical low range (0.01-1.0) for offshore fishing detail
@@ -129,30 +129,48 @@ class ChlorophyllLog10RGB(BaseAlgorithm):
         """Apply log10 transformation and compute RGB via vectorized interpolation."""
         data = img.array[0]  # Single band input
 
+        # Get raw data array (unmasked)
+        raw_data = data.data if numpy.ma.is_masked(data) else data
+
         # Build NoData mask
         if numpy.ma.is_masked(data):
             nodata_mask = data.mask.copy()
         else:
-            nodata_mask = numpy.isnan(data)
+            nodata_mask = numpy.isnan(raw_data)
 
-        # Clamp to valid range
-        clamped = numpy.clip(data.data if numpy.ma.is_masked(data) else data, self.min_value, self.max_value)
+        # Create mask for out-of-range values
+        # True = invalid (masked/transparent), False = valid (visible)
+        out_of_range_mask = (raw_data < self.min_value) | (raw_data > self.max_value)
+
+        # Combine NoData mask with out-of-range mask
+        combined_mask = nodata_mask | out_of_range_mask
+
+        # Clamp to valid range for processing
+        clamped = numpy.clip(raw_data, self.min_value, self.max_value)
+
+        # Compute log10 bounds dynamically from min_value/max_value
+        log_min = numpy.log10(self.min_value)
+        log_max = numpy.log10(self.max_value)
+        log_range = log_max - log_min
 
         # Apply log10 transformation
         log_data = numpy.log10(clamped)
 
         # Normalize to 0-1 range in log10 space
-        log_range = self.log_max - self.log_min
-        normalized = (log_data - self.log_min) / log_range
+        normalized = (log_data - log_min) / log_range
 
         # Pre-compute log10 positions and RGB values for interpolation
+        # Color stops are mapped to the dynamic log10 range
         log_positions = []
         r_values = []
         g_values = []
         b_values = []
 
         for chlor_val, hex_color in self.color_stops:
-            log_pos = (numpy.log10(chlor_val) - self.log_min) / log_range
+            # Map color stop to normalized log10 position in current range
+            # Clamp color stop values to current range boundaries
+            clamped_stop = numpy.clip(chlor_val, self.min_value, self.max_value)
+            log_pos = (numpy.log10(clamped_stop) - log_min) / log_range
             log_positions.append(log_pos)
             r, g, b = self._hex_to_rgb(hex_color)
             r_values.append(r)
@@ -177,8 +195,8 @@ class ChlorophyllLog10RGB(BaseAlgorithm):
         ], axis=0)
 
         # Create masked array for proper transparency
-        # Broadcast 2D nodata_mask to all 3 RGB bands
-        rgb_mask = numpy.broadcast_to(nodata_mask, rgb.shape)
+        # Broadcast 2D combined_mask (NoData + out-of-range) to all 3 RGB bands
+        rgb_mask = numpy.broadcast_to(combined_mask, rgb.shape)
         rgb_masked = numpy.ma.MaskedArray(rgb, mask=rgb_mask)
 
         return ImageData(
