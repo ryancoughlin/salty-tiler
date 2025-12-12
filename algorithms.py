@@ -129,23 +129,19 @@ class ChlorophyllLog10RGB(BaseAlgorithm):
         """Apply log10 transformation and compute RGB via vectorized interpolation."""
         data = img.array[0]  # Single band input
 
-        # Get raw data array (unmasked)
-        raw_data = data.data if numpy.ma.is_masked(data) else data
-
-        # Build NoData mask
+        # Extract raw data and build combined mask (NoData + out-of-range)
         if numpy.ma.is_masked(data):
+            raw_data = data.data
             nodata_mask = data.mask.copy()
         else:
+            raw_data = data
             nodata_mask = numpy.isnan(raw_data)
 
-        # Create mask for out-of-range values
-        # True = invalid (masked/transparent), False = valid (visible)
+        # Mask out-of-range values and combine with NoData mask
         out_of_range_mask = (raw_data < self.min_value) | (raw_data > self.max_value)
-
-        # Combine NoData mask with out-of-range mask
         combined_mask = nodata_mask | out_of_range_mask
 
-        # Clamp to valid range for processing
+        # Clamp to valid range for log10 processing
         clamped = numpy.clip(raw_data, self.min_value, self.max_value)
 
         # Compute log10 bounds dynamically from min_value/max_value
@@ -159,18 +155,26 @@ class ChlorophyllLog10RGB(BaseAlgorithm):
         # Normalize to 0-1 range in log10 space
         normalized = (log_data - log_min) / log_range
 
-        # Pre-compute log10 positions and RGB values for interpolation
-        # Color stops are mapped to the dynamic log10 range
+        # Build interpolation arrays: filter stops within range, add boundaries if needed
         log_positions = []
         r_values = []
         g_values = []
         b_values = []
 
-        for chlor_val, hex_color in self.color_stops:
-            # Map color stop to normalized log10 position in current range
-            # Clamp color stop values to current range boundaries
-            clamped_stop = numpy.clip(chlor_val, self.min_value, self.max_value)
-            log_pos = (numpy.log10(clamped_stop) - log_min) / log_range
+        # Filter stops within range
+        valid_stops = [(v, c) for v, c in self.color_stops if self.min_value <= v <= self.max_value]
+        
+        # Add boundary stops if range extends beyond color stops
+        stops_to_process = []
+        if not valid_stops or valid_stops[0][0] > self.min_value:
+            stops_to_process.append((self.min_value, valid_stops[0][1] if valid_stops else self.color_stops[0][1]))
+        stops_to_process.extend(valid_stops)
+        if not valid_stops or valid_stops[-1][0] < self.max_value:
+            stops_to_process.append((self.max_value, valid_stops[-1][1] if valid_stops else self.color_stops[-1][1]))
+
+        # Convert to log10 positions and RGB arrays
+        for chlor_val, hex_color in stops_to_process:
+            log_pos = (numpy.log10(chlor_val) - log_min) / log_range
             log_positions.append(log_pos)
             r, g, b = self._hex_to_rgb(hex_color)
             r_values.append(r)
