@@ -33,8 +33,8 @@ SST_COLORS_HIGH_CONTRAST = [
     '#6f2607', '#5e2206'
 ]
 
-# Salty Vibes SST color scale - Ocean-inspired gradient
-SST_COLORS_SALTY_VIBES = [
+# Salty Vibes color scale - Ocean-inspired gradient
+SALTY_VIBES = [
     # Coldest purples
     '#1a0033', '#1f0040', '#24004d', '#2a0059', '#2f0066',
     '#350073', '#3b0080', '#41008c', '#470099', '#4d00a6',
@@ -437,7 +437,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     """Load and register all custom colormaps."""
     # Generate the continuous colormaps
     sst_colormap = create_continuous_colormap(SST_COLORS_HIGH_CONTRAST, 256)
-    sst_salty_vibes_colormap = create_continuous_colormap(SST_COLORS_SALTY_VIBES, 256)
+    salty_vibes_colormap = create_continuous_colormap(SALTY_VIBES, 256)
     # Chlorophyll colormap positioned in log10 space to match Matplotlib
     chlorophyll_colormap = create_log10_positioned_colormap(CHLOROPHYLL_COLOR_STOPS, 256)
     salinity_colormap = create_continuous_colormap(SALINITY_COLORS, 256)
@@ -461,7 +461,7 @@ def load_custom_colormaps() -> Dict[str, Dict[int, Tuple[int, int, int, int]]]:
     # Register custom colormaps
     custom_colormaps = {
         "sst_high_contrast": sst_colormap,
-        "sst_salty_vibes": sst_salty_vibes_colormap,
+        "salty_vibes": salty_vibes_colormap,
         "chlorophyll": chlorophyll_colormap,
         "salinity": salinity_colormap,  # DEPRECATED: Use "flow" instead. Kept for backward compatibility.
         "flow": salinity_colormap,  # Generic dataset-agnostic name (smooth flowing transition from cool to warm)
