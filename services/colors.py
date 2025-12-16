@@ -35,6 +35,10 @@ SST_COLORS_HIGH_CONTRAST = [
 
 # Salty Vibes SST color scale - Ocean-inspired gradient
 SST_COLORS_SALTY_VIBES = [
+    # Coldest purples
+    '#1a0033', '#1f0040', '#24004d', '#2a0059', '#2f0066',
+    '#350073', '#3b0080', '#41008c', '#470099', '#4d00a6',
+    
     # Deep ocean blues
     '#0d1554', '#0f1960', '#121e6c', '#142378', '#172884',
     '#192d90', '#1c329c', '#1e37a8', '#213db4', '#2342c0',
