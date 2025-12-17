@@ -33,35 +33,22 @@ SST_COLORS_HIGH_CONTRAST = [
     '#6f2607', '#5e2206'
 ]
 
-# Salty Vibes color scale - Ocean-inspired gradient
+# Salty Vibes color scale - High contrast with purple cold end
 SALTY_VIBES = [
     # Coldest purples
-    '#1a0033', '#1f0040', '#24004d', '#2a0059', '#2f0066',
-    '#350073', '#3b0080', '#41008c', '#470099', '#4d00a6',
-    
-    # Deep ocean blues
-    '#0d1554', '#0f1960', '#121e6c', '#142378', '#172884',
-    '#192d90', '#1c329c', '#1e37a8', '#213db4', '#2342c0',
-    
-    # Transitional blues to cyans
-    '#2647cc', '#264fd8', '#3057e4', '#415fe4', '#5267e4',
-    '#6370e4', '#747ae4', '#8585e4', '#968fe4', '#a799e4',
-    
-    # Ocean teals and greens
-    '#68c9bf', '#5ecfb9', '#55d5b2', '#4ddcac', '#44e2a5',
-    '#3ce99f', '#33ef98', '#2bf691', '#22fc8b', '#1aff85',
-    
-    # Warm yellows
-    '#c7e8b4', '#d3eaa6', '#e0ec97', '#ecee89', '#f9f07b',
-    '#fff267', '#ffe854', '#ffdf41', '#ffd52e', '#ffcc1a',
-    
-    # Hot oranges
-    '#ffbe17', '#ffb114', '#ffa412', '#ff970f', '#ff8a0d',
-    '#ff7d0a', '#ff7008', '#fd6307', '#f95505', '#f64804',
-    
-    # Intense reds
-    '#f33b02', '#eb2e01', '#e32100', '#dd1500', '#d60800',
-    '#cf0003', '#be000a', '#ad0011', '#9c0018', '#8b001f'
+    '#1a0033', '#2a0055', '#3a0077', '#4a0099', '#5a00bb',
+    # Deep blue to blue
+    '#081d58', '#16306e', '#21449b', '#2c5fcf', '#3883f6',
+    # Cyan to green
+    '#34d1db', '#0effc5', '#7ff000', '#ebf600',
+    # Yellow to orange
+    '#fec44f', '#fca23f', '#fb9137', '#fa802f', '#f96f27',
+    # Orange-red to red
+    '#f85e1f', '#f74d17', '#e6420e', '#d53e0d',
+    # Red-brown to brown
+    '#c43a0c', '#b3360b', '#a2320a', '#912e09', '#802a08',
+    # Brown to dark brown
+    '#6f2607', '#5e2206'
 ]
 
 # Chlorophyll color scheme - exact Matplotlib specification with 39 color stops
