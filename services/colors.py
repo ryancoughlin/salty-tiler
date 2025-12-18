@@ -34,21 +34,45 @@ SST_COLORS_HIGH_CONTRAST = [
 ]
 
 # Salty Vibes color scale - High contrast with purple cold end
+# Expanded to 60 color stops for finer temperature discrimination in linear mapping
+# More control points = more visual breaks per degree, better for detecting thermal boundaries
+# Each original color pair now has 1-2 intermediate stops for smoother, more granular transitions
 SALTY_VIBES = [
-    # Coldest purples
-    '#1a0033', '#2a0055', '#3a0077', '#4a0099', '#5a00bb',
-    # Deep blue to blue
-    '#081d58', '#16306e', '#21449b', '#2c5fcf', '#3883f6',
-    # Cyan to green
-    '#34d1db', '#0effc5', '#7ff000', '#ebf600',
-    # Yellow to orange
-    '#fec44f', '#fca23f', '#fb9137', '#fa802f', '#f96f27',
-    # Orange-red to red
-    '#f85e1f', '#f74d17', '#e6420e', '#d53e0d',
-    # Red-brown to brown
-    '#c43a0c', '#b3360b', '#a2320a', '#912e09', '#802a08',
-    # Brown to dark brown
-    '#6f2607', '#5e2206'
+    # Coldest purples (8 stops)
+    '#1a0033', '#1d0039', '#20003f', '#25004a', '#2a0055',
+    '#2f0060', '#35006b', '#3a0077', '#400082', '#4a0099',
+    '#5000a4', '#5500af', '#5a00bb',
+    
+    # Deep blue to blue (12 stops - critical transition zone)
+    '#081d58', '#0a205d', '#0c2362', '#0e2667', '#10296c',
+    '#16306e', '#183373', '#1a3678', '#1c397d', '#1e3c82',
+    '#21449b', '#2347a0', '#254aa5', '#274daa', '#2a50af',
+    '#2c5fcf', '#2e62d4', '#3065d9', '#3268de', '#3883f6',
+    
+    # Cyan to green (10 stops)
+    '#34d1db', '#33d3dd', '#32d5df', '#31d7e1', '#30d9e3',
+    '#0effc5', '#0dffc7', '#0cffc9', '#0bffcb', '#0affcd',
+    '#7ff000', '#80f200', '#81f400', '#ebf600',
+    
+    # Yellow to orange (14 stops - warm range detail)
+    '#fec44f', '#fdc34e', '#fcc24d', '#fbc14c', '#fbc04b',
+    '#fca23f', '#fba13e', '#faa03d', '#f99f3c', '#f99e3b',
+    '#fb9137', '#fa9036', '#f98f35', '#f98e34',
+    '#fa802f', '#f97f2e', '#f97e2d', '#f96f27',
+    
+    # Orange-red to red (10 stops)
+    '#f85e1f', '#f75d1e', '#f65c1d', '#f65b1c',
+    '#f74d17', '#f64c16', '#f64b15', '#f64a14',
+    '#e6420e', '#e5410d', '#d53e0d',
+    
+    # Red-brown to brown (14 stops - hot end detail)
+    '#c43a0c', '#c3390b', '#c2380a', '#c13709',
+    '#b3360b', '#b2350a', '#b13409', '#b03308',
+    '#a2320a', '#a13109', '#a03008', '#9f2f07',
+    '#912e09', '#8f2d08', '#802a08', '#7f2907',
+    
+    # Brown to dark brown (6 stops)
+    '#6f2607', '#6e2506', '#6d2405', '#5e2206', '#5d2105', '#5c2004'
 ]
 
 # Chlorophyll color scheme - exact Matplotlib specification with 39 color stops
