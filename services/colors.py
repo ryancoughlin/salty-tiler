@@ -34,45 +34,28 @@ SST_COLORS_HIGH_CONTRAST = [
 ]
 
 # Salty Vibes color scale - High contrast with purple cold end
-# Expanded to 60 color stops for finer temperature discrimination in linear mapping
-# More control points = more visual breaks per degree, better for detecting thermal boundaries
-# Each original color pair now has 1-2 intermediate stops for smoother, more granular transitions
+# Simplified to primary anchor points to prevent banding and preserve gradients
 SALTY_VIBES = [
-    # Coldest purples (8 stops)
-    '#1a0033', '#1d0039', '#20003f', '#25004a', '#2a0055',
-    '#2f0060', '#35006b', '#3a0077', '#400082', '#4a0099',
-    '#5000a4', '#5500af', '#5a00bb',
+    # Coldest purples
+    '#1a0033', '#35006b', '#5a00bb',
     
-    # Deep blue to blue (12 stops - critical transition zone)
-    '#081d58', '#0a205d', '#0c2362', '#0e2667', '#10296c',
-    '#16306e', '#183373', '#1a3678', '#1c397d', '#1e3c82',
-    '#21449b', '#2347a0', '#254aa5', '#274daa', '#2a50af',
-    '#2c5fcf', '#2e62d4', '#3065d9', '#3268de', '#3883f6',
+    # Deep blue to blue (Primary SST Anchors)
+    '#081d58', '#16306e', '#21449b', '#2c5fcf', '#3883f6',
     
-    # Cyan to green (10 stops)
-    '#34d1db', '#33d3dd', '#32d5df', '#31d7e1', '#30d9e3',
-    '#0effc5', '#0dffc7', '#0cffc9', '#0bffcb', '#0affcd',
-    '#7ff000', '#80f200', '#81f400', '#ebf600',
+    # Cyan to green
+    '#34d1db', '#0effc5', '#7ff000', '#ebf600',
     
-    # Yellow to orange (14 stops - warm range detail)
-    '#fec44f', '#fdc34e', '#fcc24d', '#fbc14c', '#fbc04b',
-    '#fca23f', '#fba13e', '#faa03d', '#f99f3c', '#f99e3b',
-    '#fb9137', '#fa9036', '#f98f35', '#f98e34',
-    '#fa802f', '#f97f2e', '#f97e2d', '#f96f27',
+    # Yellow to orange
+    '#fec44f', '#fca23f', '#fb9137', '#fa802f', '#f96f27',
     
-    # Orange-red to red (10 stops)
-    '#f85e1f', '#f75d1e', '#f65c1d', '#f65b1c',
-    '#f74d17', '#f64c16', '#f64b15', '#f64a14',
-    '#e6420e', '#e5410d', '#d53e0d',
+    # Orange-red to red
+    '#f85e1f', '#f74d17', '#e6420e', '#d53e0d',
     
-    # Red-brown to brown (14 stops - hot end detail)
-    '#c43a0c', '#c3390b', '#c2380a', '#c13709',
-    '#b3360b', '#b2350a', '#b13409', '#b03308',
-    '#a2320a', '#a13109', '#a03008', '#9f2f07',
-    '#912e09', '#8f2d08', '#802a08', '#7f2907',
+    # Red-brown to brown
+    '#c43a0c', '#b3360b', '#a2320a', '#912e09', '#802a08',
     
-    # Brown to dark brown (6 stops)
-    '#6f2607', '#6e2506', '#6d2405', '#5e2206', '#5d2105', '#5c2004'
+    # Brown to dark brown
+    '#6f2607', '#5e2206'
 ]
 
 # Chlorophyll color scheme - exact Matplotlib specification with 39 color stops
@@ -329,41 +312,31 @@ LIME_OVERLAY_COLORS = [
     '#66aa00'   # Darkest saturated lime/green (end)
 ]
 
-def create_continuous_colormap(color_list: List[str], num_colors: int = 500) -> Dict[int, Tuple[int, int, int, int]]:
+def create_continuous_colormap(color_list: List[str], num_colors: int = 256) -> Dict[int, Tuple[int, int, int, int]]:
     """Create a continuous colormap by interpolating between colors in the list."""
     # Convert hex colors to RGB
     rgb_colors = [hex_to_rgb(color) for color in color_list]
-    
-    # Number of color segments
-    num_segments = len(rgb_colors) - 1
-    
-    # Calculate how many colors to generate per segment
-    colors_per_segment = [num_colors // num_segments] * num_segments
-    # Distribute any remainder
-    remainder = num_colors % num_segments
-    for i in range(remainder):
-        colors_per_segment[i] += 1
-    
-    # Generate the continuous colormap
+    num_stops = len(rgb_colors)
     continuous_map = {}
-    color_index = 0
     
-    for segment in range(num_segments):
-        r1, g1, b1 = rgb_colors[segment]
-        r2, g2, b2 = rgb_colors[segment + 1]
+    for i in range(num_colors):
+        # Map current index (0 to num_colors-1) to the range of stops (0 to num_stops-1)
+        rel_pos = (i / (num_colors - 1)) * (num_stops - 1)
+        stop_idx = int(rel_pos)
+        t = rel_pos - stop_idx
         
-        for i in range(colors_per_segment[segment]):
-            # Calculate interpolation factor
-            t = i / (colors_per_segment[segment] - 1) if colors_per_segment[segment] > 1 else 0
+        if stop_idx >= num_stops - 1:
+            r, g, b = rgb_colors[-1]
+        else:
+            r1, g1, b1 = rgb_colors[stop_idx]
+            r2, g2, b2 = rgb_colors[stop_idx + 1]
             
-            # Linear interpolation between colors
+            # Linear interpolation
             r = int(r1 * (1 - t) + r2 * t)
             g = int(g1 * (1 - t) + g2 * t)
             b = int(b1 * (1 - t) + b2 * t)
             
-            # Add to colormap with full opacity
-            continuous_map[color_index] = (r, g, b, 255)
-            color_index += 1
+        continuous_map[i] = (r, g, b, 255)
     
     return continuous_map
 
