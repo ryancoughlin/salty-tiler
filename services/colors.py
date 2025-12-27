@@ -17,45 +17,38 @@ def hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
 
-# User's high contrast color scale (evenly spaced, visually uniform)
+# User's high contrast color scale (Balanced 4-stop segments)
 SST_COLORS_HIGH_CONTRAST = [
     # Deep blue to blue
-    '#081d58', '#16306e', '#21449b', '#2c5fcf', '#3883f6',
+    '#081d58', '#16306e', '#21449b', '#2c5fcf', 
     # Cyan to green
-    '#34d1db', '#0effc5', '#7ff000', '#ebf600',
+    '#3883f6', '#34d1db', '#0effc5', '#7ff000', 
     # Yellow to orange
-    '#fec44f', '#fca23f', '#fb9137', '#fa802f', '#f96f27',
+    '#ebf600', '#fec44f', '#fca23f', '#fb9137',
     # Orange-red to red
-    '#f85e1f', '#f74d17', '#e6420e', '#d53e0d',
+    '#fa802f', '#f96f27', '#f85e1f', '#f74d17',
     # Red-brown to brown
-    '#c43a0c', '#b3360b', '#a2320a', '#912e09', '#802a08',
+    '#e6420e', '#d53e0d', '#c43a0c', '#b3360b',
     # Brown to dark brown
-    '#6f2607', '#5e2206'
+    '#a2320a', '#912e09', '#802a08', '#5e2206'
 ]
 
-# Salty Vibes color scale - High contrast with purple cold end
-# Simplified to primary anchor points to prevent banding and preserve gradients
+# Salty Vibes color scale (Balanced 4-stop segments with Purple end)
 SALTY_VIBES = [
-    # Coldest purples
-    '#1a0033', '#35006b', '#5a00bb',
-    
-    # Deep blue to blue (Primary SST Anchors)
-    '#081d58', '#16306e', '#21449b', '#2c5fcf', '#3883f6',
-    
+    # Coldest purples (Primary "Salty" Contrast)
+    '#1a0033', '#35006b', '#5a00bb', '#081d58', 
+    # Deep blue to blue
+    '#16306e', '#21449b', '#2c5fcf', '#3883f6',
     # Cyan to green
     '#34d1db', '#0effc5', '#7ff000', '#ebf600',
-    
     # Yellow to orange
-    '#fec44f', '#fca23f', '#fb9137', '#fa802f', '#f96f27',
-    
+    '#fec44f', '#fca23f', '#fb9137', '#fa802f',
     # Orange-red to red
-    '#f85e1f', '#f74d17', '#e6420e', '#d53e0d',
-    
+    '#f96f27', '#f85e1f', '#f74d17', '#e6420e',
     # Red-brown to brown
-    '#c43a0c', '#b3360b', '#a2320a', '#912e09', '#802a08',
-    
+    '#d53e0d', '#c43a0c', '#b3360b', '#a2320a',
     # Brown to dark brown
-    '#6f2607', '#5e2206'
+    '#912e09', '#802a08', '#6f2607', '#5e2206'
 ]
 
 # Chlorophyll color scheme - exact Matplotlib specification with 39 color stops
